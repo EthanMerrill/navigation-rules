@@ -10,8 +10,10 @@
     "@types/node": "^16.18.2",
     "@types/react": "^18.0.23",
     "@types/react-dom": "^18.0.7",
+    "moveable-react": "^0.1.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "react-moveable": "^0.40.0",
     "react-scripts": "5.0.1",
     "typescript": "^4.8.4",
     "web-vitals": "^2.1.4"
