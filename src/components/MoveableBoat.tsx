@@ -1,24 +1,21 @@
 
-import React,{useEffect} from "react";
+import React, {useEffect} from "react";
 import MoveableComponent from './MoveableComponent';
 import PrototypeBoat from '../assets/PrototypeBoat.svg';
-
+import { IBoatRights } from "../App";
 export interface ImoveableBoatProps {
     styleState: string;
     setStyleState: React.Dispatch<React.SetStateAction<string>>;
+    moveRef: React.RefObject<HTMLDivElement>;
     backgroundColor: string;
+    text:string;
+    boatRights: IBoatRights;
 }
 
 const MoveableBoat = (props:ImoveableBoatProps) => {
 
-    const {styleState, setStyleState, backgroundColor} = props;
+    const {styleState, setStyleState, moveRef, backgroundColor, text} = props;
 
-    const moveRef = React.useRef(null);
-
-    // useEffect(() => {
-    //     console.log("style", style, moveRef);
-    // }, [style]);
-  
     return (
       <div>
         <div
@@ -29,7 +26,8 @@ const MoveableBoat = (props:ImoveableBoatProps) => {
             'background': backgroundColor
           }}
         >
-          <img alt='boat 1 svg' src={PrototypeBoat}/>
+          <img alt={text} src={PrototypeBoat}/>
+          <p>{text}</p>
         </div>
         <MoveableComponent moveRef={moveRef} setStyle={setStyleState} />
       </div>
