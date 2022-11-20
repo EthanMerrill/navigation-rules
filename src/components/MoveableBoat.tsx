@@ -14,7 +14,10 @@ export interface ImoveableBoatProps {
 
 const MoveableBoat = (props:ImoveableBoatProps) => {
 
-    const {styleState, setStyleState, moveRef, backgroundColor, text} = props;
+    useEffect(() => {
+        console.log(props.boatRights)
+    }, [props.boatRights])
+    const {styleState, setStyleState, moveRef, backgroundColor, text, boatRights} = props;
 
     return (
       <div>
@@ -27,6 +30,7 @@ const MoveableBoat = (props:ImoveableBoatProps) => {
           }}
         >
           <img alt={text} src={PrototypeBoat}/>
+          <p>{boatRights.leward+" "+boatRights.stbdTack}</p>
           <p>{text}</p>
         </div>
         <MoveableComponent moveRef={moveRef} setStyle={setStyleState} />

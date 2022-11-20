@@ -1,5 +1,7 @@
 import React, {useEffect, useState} from "react";
 import "./App.css";
+import { styleParse } from "./utilities/HelperFunctions";
+
 
 import MoveableBoat from "./components/MoveableBoat";
 export interface IBoatRights {
@@ -21,51 +23,38 @@ function App() {
   });
 
   const moveRef1 = React.useRef(null);
-  const moveRef2 = React.useRef(null);
-
-  function styleParse(transformstyle: string) {
-    let matchArr = transformstyle.match(/([\w]+)\(([^\)]+)\)/g);
-    if (matchArr) {
-      return matchArr
-        .map(function (it: string) {
-          return it.replace(/\)$/, "").split(/\(/);
-        })
-        .reduce(function (m: any, it: any) {
-          return (m[it[0]] = it[1]), m;
-        }, {});
-    }
-  }
+  const moveRef2 = React.useRef(null); 
 
   // Port Starboard Ruleset
   function portStarboardRuleset(boat1: string, boat2: string) {
-    if (Math.floor(styleParse(style1)?.rotate?.slice(0, -3) / 180) % 2 === 0) {
-      boat1Rights.stbdTack = false;
-    } else {
-      boat1Rights.stbdTack = true;
-    }
-    if (Math.floor(styleParse(style2)?.rotate?.slice(0, -3) / 180) % 2 === 0) {
-      boat2Rights.stbdTack = false;
-    } else {
-      boat2Rights.stbdTack = true;
-    }
+  if (Math.floor(styleParse(style1)?.rotate?.slice(0, -3) / 180) % 2 === 0) {
+    boat1Rights.stbdTack = false;
+  } else {
+    boat1Rights.stbdTack = true;
   }
+  if (Math.floor(styleParse(style2)?.rotate?.slice(0, -3) / 180) % 2 === 0) {
+    boat2Rights.stbdTack = false;
+  } else {
+    boat2Rights.stbdTack = true;
+  }
+}
 
-  // windward leeward ruleset
-  function windwardLeewardRuleset(boat1: string, boat2: string) {
-    // boats are on the same tack
-    if (boat1Rights.stbdTack === boat2Rights.stbdTack) {
-      //check which boat is higher (further upwind on the course)
-      // get the y values of each boat in a safe way
-      console.log(styleParse(style1)?.translate?.match(/\d+/g)?.[1], styleParse(style2)?.translate?.match(/\d+/g)?.[1])
-      if (styleParse(style1)?.translate?.match(/\d+/g)?.[1] > styleParse(style2)?.translate?.match(/\d+/g)?.[1]) {
-        boat1Rights.leward = true;
-        boat2Rights.leward = false;
-      } else {
-        boat1Rights.leward = false;
-        boat2Rights.leward = true;
-      }
+// windward leeward ruleset
+ function windwardLeewardRuleset(boat1: string, boat2: string) {
+  // boats are on the same tack
+  if (boat1Rights.stbdTack === boat2Rights.stbdTack) {
+    //check which boat is higher (further upwind on the course)
+    // get the y values of each boat in a safe way
+    console.log(styleParse(style1)?.translate?.match(/\d+/g)?.[1], styleParse(style2)?.translate?.match(/\d+/g)?.[1])
+    if (styleParse(style1)?.translate?.match(/\d+/g)?.[1] > styleParse(style2)?.translate?.match(/\d+/g)?.[1]) {
+      boat1Rights.leward = true;
+      boat2Rights.leward = false;
+    } else {
+      boat1Rights.leward = false;
+      boat2Rights.leward = true;
     }
   }
+}
 
   useEffect(() => {
     portStarboardRuleset(style1, style2);

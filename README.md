@@ -4,12 +4,15 @@ An app designed primarily to teach rules of the road for competitive sailors. Us
 
 ### TODO
 
-- [ ] Custom Box Styling
-- [ ] Positioning Reporting
+- [x] Custom Box Styling
+- [x] Positioning Reporting
 - [ ] Ruleset Architecture
 - [ ] Routing
 - [ ] State Management?
+- [ ] Points of Sail
+- [ ] Overlap Calculation
 - [ ] Basic Styling 
     - Wind Graphic
     - Water colors
     - Boat SVG upgrade
+    - 
