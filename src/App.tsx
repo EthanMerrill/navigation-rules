@@ -1,7 +1,8 @@
 import React, {useEffect, useState} from "react";
 import "./App.css";
+import './styles/styles.css';
 import { styleParse } from "./utilities/HelperFunctions";
-
+import RulesSidebar from "./components/RulesSidebar";
 
 import MoveableBoat from "./components/MoveableBoat";
 export interface IBoatRights {
@@ -63,12 +64,18 @@ function App() {
 
   return (
     <div className="App">
+      <div className='patterns pt1'></div>
+      <style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+</style>
+      <RulesSidebar/>
       <div className="draggable">
         <MoveableBoat setStyleState={setStyle1} styleState={style1} moveRef={moveRef1} backgroundColor={"blue"} text="boat1" boatRights={boat1Rights} />
       </div>
       <div className="draggable">
         <MoveableBoat setStyleState={setStyle2} styleState={style2} moveRef={moveRef2} backgroundColor={"red"} text="boat2" boatRights={boat2Rights} />
       </div>
+      
     </div>
   );
 }
