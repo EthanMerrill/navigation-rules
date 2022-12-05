@@ -45,7 +45,6 @@ function App() {
   if (boat1Rights.stbdTack === boat2Rights.stbdTack) {
     //check which boat is higher (further upwind on the course)
     // get the y values of each boat in a safe way
-    console.log(styleParse(style1)?.translate?.match(/\d+/g)?.[1], styleParse(style2)?.translate?.match(/\d+/g)?.[1])
     if (styleParse(style1)?.translate?.match(/\d+/g)?.[1] > styleParse(style2)?.translate?.match(/\d+/g)?.[1]) {
       boat1Rights.leward = true;
       boat2Rights.leward = false;
@@ -59,7 +58,7 @@ function App() {
   useEffect(() => {
     portStarboardRuleset(style1, style2);
     windwardLeewardRuleset(style1, style2);
-    console.log(boat1Rights, boat2Rights);
+    // console.log(boat1Rights, boat2Rights);
   }, [style1, style2]);
 
   return (
