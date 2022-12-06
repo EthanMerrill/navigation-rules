@@ -53,13 +53,12 @@ const MoveableBoat = (props: ImoveableBoatProps) => {
         ref={moveRef}
         style={{
           transform: styleState,
-          background: backgroundColor,
         }}>
         <img alt={text} src={PrototypeBoat} />
-        <p>{boatRights.leward + " " + boatRights.stbdTack}</p>
-        <p>{text}</p>
-        <svg width="11" height="79" viewBox="0 0 11 79" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <animated.path d={sailPath} stroke="black" />
+        {boatRights.leward ? <div className="leeward-tag"><p className="text-tag"><u>Leeward</u></p></div> : <div className="windward-tag"><p className="text-tag">Windward</p></div>}
+        {boatRights.stbdTack ? <div className="starboard-tag"><p className='text-tag'>Starboard</p></div> : <div className='port-tag'><p className="text-tag">Port</p></div>}
+        <svg className="sail-path" width="11" height="79" viewBox="0 0 11 79" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path  d={sailPath} stroke="black" />
         </svg>
       </div>
       <MoveableComponent moveRef={moveRef} setStyle={setStyleState} />
