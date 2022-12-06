@@ -37,12 +37,7 @@ const MoveableBoat = (props: ImoveableBoatProps) => {
   }
 
   useEffect(() => {
-    console.log(sailPath);
-  }, [props.boatRights]);
-
-  useEffect(() => {
     tackChange();
-    console.log(sailPath)
   }, [props.boatRights.stbdTack]);
 
   // https://codesandbox.io/s/react-spring-svg-4-4-kv2qm?file=/src/App.js
@@ -54,10 +49,10 @@ const MoveableBoat = (props: ImoveableBoatProps) => {
         style={{
           transform: styleState,
         }}>
-        <img alt={text} src={PrototypeBoat} />
-        {boatRights.leward ? <div className="leeward-tag"><p className="text-tag"><u>Leeward</u></p></div> : <div className="windward-tag"><p className="text-tag">Windward</p></div>}
+        <img alt={text} src={PrototypeBoat} className={boatRights.standonBoat?'standon-boat':'giveway-boat'} />
+        {boatRights.leeward ? <div className="leeward-tag"><p className="text-tag"><u>Leeward</u></p></div> : <div className="windward-tag"><p className="text-tag">Windward</p></div>}
         {boatRights.stbdTack ? <div className="starboard-tag"><p className='text-tag'>Starboard</p></div> : <div className='port-tag'><p className="text-tag">Port</p></div>}
-        <svg className="sail-path" width="11" height="79" viewBox="0 0 11 79" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <svg className={"sail-path"} width="11" height="79" viewBox="0 0 11 79" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path  d={sailPath} stroke="black" />
         </svg>
       </div>
