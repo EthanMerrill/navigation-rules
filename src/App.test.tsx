@@ -1,9 +1,8 @@
-import React from 'react';
-import { render, screen } from '@testing-library/react';
-import App from './App';
+import {render, screen} from "@testing-library/react";
+import App from "./App";
 
-test('renders learn react link', () => {
-  render(<App />);
-  const linkElement = screen.getByText(/learn react/i);
-  expect(linkElement).toBeInTheDocument();
+test("renders the rules sidebar", () => {
+	render(<App />);
+	const heading = screen.getByText(/Right-of-Way Rules/i);
+	expect(heading).toBeInTheDocument();
 });

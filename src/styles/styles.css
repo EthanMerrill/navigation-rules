@@ -1,115 +1,416 @@
 .rules-sidebar {
-  display: flex;
-  flex-direction: column;
-  width: 300px;
-  background: #fefefe;
-  border: 1px solid #f2f0f0;
-  border-radius: 5px;
-  padding: 10px;
-  margin: 20px;
-  top:50px;
-  position:absolute;
+	display: flex;
+	flex-direction: column;
+	width: 300px;
+	background: #fefefe;
+	border: 1px solid #f2f0f0;
+	border-radius: 5px;
+	padding: 10px;
+	margin: 20px;
+	top: 50px;
+	position: absolute;
+	z-index: 20;
 }
 
 .app-header {
-  position: relative;
-  width: 100%;
-  margin-top: -10px;
+	position: relative;
+	width: 100%;
+	display: flex;
+	justify-content: center;
+	padding-top: 12px;
+	z-index: 30;
 }
 
-.wind-box{
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  align-items: center;
-  background: #fefefe;
-  border: 1px solid #f2f0f0;
-  border-radius: 5px;
-  position: relative;
-  margin: auto;
-  width: 10%;
-  margin-top: 10px !important;
-}
-.header-box > * {
-  font-family: inter;
+.control-bar {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	background: #fefefe;
+	border: 1px solid #e2e2e2;
+	border-radius: 8px;
+	padding: 12px 16px;
+	box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+	min-width: 340px;
+	max-width: 640px;
+	font-family: inter;
 }
 
-.standon-boat{
-
-  filter: drop-shadow(3px 0px 0px #51B841);
-
+.control-row {
+	display: flex;
+	align-items: center;
+	gap: 10px;
 }
 
-.starboard-tag{
-background: #51B841;
-border-radius: 2px;
-margin: 2px;
+.control-label {
+	font-size: 12px;
+	font-weight: 700;
+	color: #666;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	white-space: nowrap;
 }
 
-.port-tag{
-background: #F44336;
-border-radius: 2px;
-margin: 2px;
+.standon-boat {
+	filter: drop-shadow(4px 0 0 #51b841) drop-shadow(-4px 0 0 #51b841) drop-shadow(0 4px 0 #51b841) drop-shadow(0 -4px 0 #51b841);
+	transition: filter 0.3s ease;
 }
 
-.windward-tag{
-  background: #C5C5C5;
-border: 1px solid #8B8B8B;
-border-radius: 2px;
-margin: 2px;
+.starboard-tag {
+	background: #51b841;
+	border-radius: 2px;
+	margin: 2px;
 }
 
-.leeward-tag{
-  background: #C5C5C5;
-border: 1px solid #8B8B8B;
-border-radius: 2px;
-margin: 2px;
+.port-tag {
+	background: #f44336;
+	border-radius: 2px;
+	margin: 2px;
 }
 
-.text-tag{
-  padding:2px;
-  margin: 0px;
-  font-size: 12px;
-  color: #FFFFFF;
-  font-weight: 600;
-  }
+.windward-tag {
+	background: #c5c5c5;
+	border: 1px solid #8b8b8b;
+	border-radius: 2px;
+	margin: 2px;
+}
+
+.leeward-tag {
+	background: #c5c5c5;
+	border: 1px solid #8b8b8b;
+	border-radius: 2px;
+	margin: 2px;
+}
+
+.tacking-tag {
+	background: #ff9800;
+	border-radius: 2px;
+	margin: 2px;
+}
+
+.tacking-toggle {
+	cursor: pointer;
+	border: 1px solid #ccc;
+	border-radius: 4px;
+	background: #fff;
+	padding: 4px 10px;
+	font-family: inter;
+	font-weight: 600;
+	font-size: 12px;
+	white-space: nowrap;
+}
+
+.tacking-toggle--active {
+	background: #ff9800;
+	border-color: #e07b00;
+	color: #fff;
+}
+
+.text-tag {
+	padding: 2px;
+	margin: 0px;
+	font-size: 12px;
+	color: #ffffff;
+	font-weight: 600;
+}
 
 .rules-sidebar > * {
-  font-family: inter;
+	font-family: inter;
 }
 
 .rules-sidebar p {
-  font-family: inter;
-  size: 10px;
-}
-.moveable-line {
-    position: absolute;
-    width: 0px;
-    height: 0px;
-    background: #4af;
-    transform-origin: 0px 0.5px;
-    visibility: hidden;
+	font-family: inter;
+	size: 10px;
 }
 
-.sail-path{
-    transform: translate(0,-150px);
-    z-index: 2;
+.rules-sidebar__content {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.rule-card {
+	border: 1px solid #e0e0e0;
+	border-radius: 5px;
+	background: #fff;
+	overflow: hidden;
+	cursor: pointer;
+	transition:
+		border-color 0.15s ease,
+		box-shadow 0.15s ease;
+}
+
+.rule-card:hover {
+	border-color: #bdbdbd;
+	box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+}
+
+.rule-card__header {
+	display: flex;
+	align-items: left;
+	gap: 8px;
+	padding: 8px 10px;
+}
+
+.rule-card__title {
+	margin: 0;
+	font-size: 14px;
+	font-weight: 600;
+	justify-content: left;
+}
+
+.rule-card__header h3 {
+	margin: 0;
+	font-size: 14px;
+	font-weight: 600;
+}
+
+.rule-card__badge {
+	margin-left: auto;
+	padding: 2px 6px;
+	border-radius: 3px;
+	font-size: 11px;
+	font-weight: 700;
+	color: #fff;
+	background: #51b841;
+}
+
+.rule-card__badge--applicable {
+	background: #9c7bff;
+}
+
+.rule-card__body {
+	overflow: hidden;
+}
+
+.rule-card__body-inner {
+	padding: 0 10px 10px;
+}
+
+.rule-card__description {
+	margin: 0 0 4px;
+	font-size: 12px;
+	color: #444;
+}
+
+.rule-card__detail {
+	margin: 0;
+	font-size: 12px;
+	color: #51b841;
+	font-weight: 600;
+}
+
+.rule-card--deciding {
+	border-left: 4px solid #51b841;
+	background: #eef9ec;
+}
+
+.rule-card--applicable {
+	border-left: 4px solid #9c7bff;
+}
+
+.rule-card--inactive {
+	opacity: 0.55;
+}
+
+.rule-modal__backdrop {
+	position: fixed;
+	inset: 0;
+	background: rgba(0, 0, 0, 0.45);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	z-index: 9999;
+	padding: 20px;
+}
+
+.rule-modal {
+	background: #fff;
+	border-radius: 8px;
+	width: 100%;
+	max-width: 520px;
+	max-height: 80vh;
+	overflow-y: auto;
+	box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25);
+}
+
+.rule-modal__header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	padding: 16px 20px;
+	border-bottom: 1px solid #eee;
+}
+
+.rule-modal__header h2 {
+	margin: 0;
+	font-size: 18px;
+	font-weight: 700;
+}
+
+.rule-modal__close {
+	cursor: pointer;
+	border: none;
+	background: transparent;
+	font-size: 26px;
+	line-height: 1;
+	color: #666;
+	padding: 0 4px;
+}
+
+.rule-modal__close:hover {
+	color: #000;
+}
+
+.rule-modal__body {
+	padding: 16px 20px 20px;
+}
+
+.rule-modal__short {
+	margin: 0 0 4px;
+	font-size: 13px;
+	color: #555;
+}
+
+.rule-modal__body section {
+	margin-top: 16px;
+}
+
+.rule-modal__body h3 {
+	margin: 0 0 6px;
+	font-size: 12px;
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+	color: #666;
+}
+
+.rule-modal__full-text {
+	margin: 0;
+	padding: 12px 14px;
+	background: #f7f7f7;
+	border-left: 3px solid #51b841;
+	border-radius: 3px;
+	font-style: italic;
+	font-size: 14px;
+	line-height: 1.5;
+	color: #333;
+}
+
+.rule-modal__layman {
+	margin: 0;
+	font-size: 14px;
+	line-height: 1.6;
+	color: #333;
+}
+
+.wind-arrow {
+	font-size: 18px;
+	line-height: 1;
+	color: #333;
+	width: 18px;
+	text-align: center;
+	transition: transform 0.15s ease;
+	transform-origin: center;
+}
+
+.wind-slider {
+	flex: 1;
+	min-width: 120px;
+	margin: 0;
+	accent-color: #51b841;
+}
+
+.wind-readout {
+	font-size: 13px;
+	font-weight: 600;
+	color: #333;
+	white-space: nowrap;
+	min-width: 56px;
+	text-align: center;
+}
+
+.wind-presets {
+	display: flex;
+	gap: 4px;
+}
+
+.wind-preset {
+	cursor: pointer;
+	border: 1px solid #ccc;
+	border-radius: 4px;
+	background: #fff;
+	padding: 3px 8px;
+	font-family: inter;
+	font-weight: 600;
+	font-size: 12px;
+}
+
+.wind-preset:hover {
+	background: #f0f0f0;
+}
+
+.wind-preset--active {
+	background: #51b841;
+	border-color: #51b841;
+	color: #fff;
+}
+.moveable-line {
+	position: absolute;
+	width: 0px;
+	height: 0px;
+	background: #4af;
+	transform-origin: 0px 0.5px;
+	visibility: hidden;
+}
+
+.sail-path {
+	/* Position the sail out of normal flow so the dynamic tags (windward/leeward
+	   etc.) can never shift it fore-aft. The mast pivot (left/top) is set inline
+	   per-tack so it sits on the hull centreline. */
+	position: absolute;
+	/* Allow the rotated sail (up to ~85° trim) to draw outside its 11x79 viewBox
+	   instead of being clipped at the SVG viewport. */
+	overflow: visible;
+	z-index: 2;
+	/* Smoothly ease the sail between trim angles (and heading/wind changes). */
+	transition: transform 0.3s ease;
+}
+
+.sail-path--flapping {
+	/* Luffing in irons: flutter the sail around its mast pivot. */
+	animation: sail-flap 1.1s ease-in-out infinite;
+}
+
+@keyframes sail-flap {
+	0%,
+	100% {
+		transform: rotate(-12deg);
+	}
+	50% {
+		transform: rotate(12deg);
+	}
+}
+
+.point-of-sail-tag {
+	background: #2196f3;
+	border-radius: 2px;
+	margin: 2px;
 }
 
 .rules-sidebar > * {
-  font-family: inter;
+	font-family: inter;
 }
 
 /* Ocean */
-.patterns{
-    height: 100vh;
-    width: 100%;
-    background-color:rgb(216, 216, 255);
-    position: absolute;
+.patterns {
+	height: 100vh;
+	width: 100%;
+	background-color: rgb(216, 216, 255);
+	position: absolute;
 }
 .pt1 {
-    /* https://css-generators.com/wavy-shapes/ */
-    mask:
-      radial-gradient(8px at 50% calc(100% + 4.50px),#0000 calc(99% - 1px),#000 calc(101% - 1px) 99%,#0000 101%) calc(50% - 12px) calc(50% - 3.5px + .5px)/24px 7px ,
-      radial-gradient(8px at 50% -4.5px,#0000 calc(99% - 1px),#000 calc(101% - 1px) 99%,#0000 101%) 50% calc(50% + 3.5px)/24px 7px ;
-  }
+	/* https://css-generators.com/wavy-shapes/ */
+	mask:
+		radial-gradient(8px at 50% calc(100% + 4.5px), #0000 calc(99% - 1px), #000 calc(101% - 1px) 99%, #0000 101%) calc(50% - 12px) calc(50% - 3.5px + 0.5px) / 24px 7px,
+		radial-gradient(8px at 50% -4.5px, #0000 calc(99% - 1px), #000 calc(101% - 1px) 99%, #0000 101%) 50% calc(50% + 3.5px) / 24px 7px;
+}

@@ -1,54 +1,35 @@
 {
-  "name": "navigation-rules",
-  "version": "0.1.0",
-  "private": true,
-  "homepage": "http://EthanMerrill.github.io/navigation-rules",
-  "dependencies": {
-    "@testing-library/jest-dom": "^5.16.5",
-    "@testing-library/react": "^13.4.0",
-    "@testing-library/user-event": "^13.5.0",
-    "@types/jest": "^27.5.2",
-    "@types/node": "^16.18.2",
-    "@types/react": "^18.0.23",
-    "@types/react-dom": "^18.0.7",
-    "gh-pages": "^5.0.0",
-    "moveable-react": "^0.1.2",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "react-moveable": "^0.40.0",
-    "react-redux": "^8.0.4",
-    "react-scripts": "5.0.1",
-    "react-spring": "^9.5.5",
-    "redux": "^4.2.0",
-    "redux-thunk": "^2.4.1",
-    "snapsvg": "^0.5.1",
-    "typescript": "^4.8.4",
-    "web-vitals": "^2.1.4"
-  },
-  "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject",
-    "predeploy": "npm run build",
-    "deploy": "gh-pages -d build"
-  },
-  "eslintConfig": {
-    "extends": [
-      "react-app",
-      "react-app/jest"
-    ]
-  },
-  "browserslist": {
-    "production": [
-      ">0.2%",
-      "not dead",
-      "not op_mini all"
-    ],
-    "development": [
-      "last 1 chrome version",
-      "last 1 firefox version",
-      "last 1 safari version"
-    ]
-  }
+	"name": "navigation-rules",
+	"version": "0.1.0",
+	"private": true,
+	"homepage": "http://EthanMerrill.github.io/navigation-rules",
+	"type": "module",
+	"scripts": {
+		"dev": "vite",
+		"build": "tsc --noEmit && vite build",
+		"preview": "vite preview",
+		"test": "vitest run",
+		"test:watch": "vitest",
+		"predeploy": "npm run build",
+		"deploy": "gh-pages -d build"
+	},
+	"dependencies": {
+		"motion": "^13.1.1",
+		"react": "^19.0.0",
+		"react-dom": "^19.0.0",
+		"react-moveable": "^0.56.0"
+	},
+	"devDependencies": {
+		"@testing-library/jest-dom": "^6.9.1",
+		"@testing-library/react": "^16.3.2",
+		"@testing-library/user-event": "^14.6.5",
+		"@types/react": "^19.0.0",
+		"@types/react-dom": "^19.0.0",
+		"@vitejs/plugin-react": "^6.1.0",
+		"gh-pages": "^6.3.0",
+		"jsdom": "^27.4.0",
+		"typescript": "^5.9.3",
+		"vite": "^8.2.2",
+		"vitest": "^4.1.11"
+	}
 }
