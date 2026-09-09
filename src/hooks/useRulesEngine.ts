@@ -1,18 +1,5 @@
 import {useEffect, useMemo, useRef} from "react";
-import {
-	BoatState,
-	WindState,
-	RuleEvaluation,
-	Tack,
-	evaluate,
-	getTack,
-	areOnSameTack,
-	isOverlapped,
-	isClearAstern,
-	getWindwardBoat,
-	boatPerimeterDistance,
-	TWO_HULL_LENGTHS,
-} from "../rules/rulesEngine";
+import {BoatState, WindState, RuleEvaluation, Tack, evaluate, getTack, areOnSameTack, isOverlapped, isClearAstern, getWindwardBoat, boatPerimeterDistance, TWO_HULL_LENGTHS} from "../rules/rulesEngine";
 
 /** Heading change (degrees) above which a boat is considered to be changing course. */
 const COURSE_CHANGE_EPSILON = 0.5;

@@ -48,13 +48,7 @@
 export type Tack = "PORT" | "STARBOARD";
 
 /** A boat's point of sail — its direction relative to the wind. */
-export type PointOfSail =
-	| "HEAD_TO_WIND"
-	| "CLOSE_HAULED"
-	| "CLOSE_REACH"
-	| "BEAM_REACH"
-	| "BROAD_REACH"
-	| "RUNNING";
+export type PointOfSail = "HEAD_TO_WIND" | "CLOSE_HAULED" | "CLOSE_REACH" | "BEAM_REACH" | "BROAD_REACH" | "RUNNING";
 
 /** The Section A rules implemented by this engine. */
 export type RuleNumber = 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17;
@@ -865,27 +859,20 @@ const RULE_REGISTRY: RuleDefinition[] = [
 		description: "A boat shall avoid contact with another boat if reasonably possible.",
 		fullText:
 			"A boat shall avoid contact with another boat if reasonably possible. However, a right-of-way boat, or one sailing within the room or mark-room to which she is entitled, need not act to avoid contact until it is clear that the other boat is not keeping clear or giving room or mark-room.",
-		laymanExplanation:
-			"Both boats must always try not to collide. When they get close together, avoiding contact becomes everyone's responsibility — even the boat with right of way has to act if a crash is about to happen.",
+		laymanExplanation: "Both boats must always try not to collide. When they get close together, avoiding contact becomes everyone's responsibility — even the boat with right of way has to act if a crash is about to happen.",
 		priority: 0,
 		applies: (_a, _b, _w, f) => f.collided || f.separation < CONTACT_RISK_DISTANCE,
-		detail: (_a, _b, _w, f) =>
-			f.collided
-				? `Collision — the hulls overlap by ${Math.round(-f.separation)}px. Both boats must avoid contact.`
-				: `Boats are ${Math.round(f.separation)}px apart — both must act to avoid contact.`,
+		detail: (_a, _b, _w, f) => (f.collided ? `Collision — the hulls overlap by ${Math.round(-f.separation)}px. Both boats must avoid contact.` : `Boats are ${Math.round(f.separation)}px apart — both must act to avoid contact.`),
 	},
 	{
 		ruleNumber: 15,
 		kind: "limitation",
 		title: "Acquiring Right of Way",
 		description: "When a boat acquires right of way, she shall initially give the other boat room to keep clear.",
-		fullText:
-			"When a boat acquires right of way, she shall initially give the other boat room to keep clear. She shall not sail to change course to sail a course that would immediately require the other boat to take avoiding action.",
-		laymanExplanation:
-			"When you have just gained the right of way, you can't press your advantage straight away — you must first give the other boat enough room to get out of your way.",
+		fullText: "When a boat acquires right of way, she shall initially give the other boat room to keep clear. She shall not sail to change course to sail a course that would immediately require the other boat to take avoiding action.",
+		laymanExplanation: "When you have just gained the right of way, you can't press your advantage straight away — you must first give the other boat enough room to get out of your way.",
 		priority: 0,
-		applies: (_a, _b, _w, _f, ctx) =>
-			ctx.standOnIsA !== null && ctx.prevStandOnIsA !== null && ctx.standOnIsA !== ctx.prevStandOnIsA,
+		applies: (_a, _b, _w, _f, ctx) => ctx.standOnIsA !== null && ctx.prevStandOnIsA !== null && ctx.standOnIsA !== ctx.prevStandOnIsA,
 		detail: (a, b, _w, _f, ctx) => {
 			const acquirer = ctx.standOnIsA ? a.id : b.id;
 			const other = ctx.standOnIsA ? b.id : a.id;
@@ -900,11 +887,9 @@ const RULE_REGISTRY: RuleDefinition[] = [
 		description: "When a right-of-way boat changes course, she shall give the other boat room to keep clear.",
 		fullText:
 			"When a right-of-way boat changes course, she shall give the other boat room to keep clear. In addition, when after the starting signal a port-tack boat is keeping clear by sailing to pass astern of a starboard-tack boat, the starboard-tack boat shall not change course if as a result the port-tack boat would immediately need to change course to continue keeping clear.",
-		laymanExplanation:
-			"Even if you have right of way, you cannot suddenly alter course into the other boat — if you change direction, you must leave them room to stay clear.",
+		laymanExplanation: "Even if you have right of way, you cannot suddenly alter course into the other boat — if you change direction, you must leave them room to stay clear.",
 		priority: 0,
-		applies: (_a, _b, _w, _f, ctx) =>
-			(ctx.standOnIsA === true && ctx.changingCourseA) || (ctx.standOnIsA === false && ctx.changingCourseB),
+		applies: (_a, _b, _w, _f, ctx) => (ctx.standOnIsA === true && ctx.changingCourseA) || (ctx.standOnIsA === false && ctx.changingCourseB),
 		detail: (a, b, _w, _f, ctx) => {
 			const rowId = ctx.standOnIsA ? a.id : b.id;
 			return `${rowId} is the right-of-way boat and is changing course — it must give room to keep clear.`;

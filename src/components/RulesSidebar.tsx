@@ -105,14 +105,7 @@ const CooldownIndicator = ({durationMs}: {durationMs: number}) => {
 	return (
 		<svg className="rule-card__cooldown" viewBox="0 0 24 24" aria-hidden="true">
 			<circle className="rule-card__cooldown-track" cx="12" cy="12" r={RADIUS} />
-			<circle
-				className="rule-card__cooldown-fill"
-				cx="12"
-				cy="12"
-				r={RADIUS}
-				strokeDasharray={CIRCUMFERENCE}
-				style={{animationDuration: `${durationMs}ms`}}
-			/>
+			<circle className="rule-card__cooldown-fill" cx="12" cy="12" r={RADIUS} strokeDasharray={CIRCUMFERENCE} style={{animationDuration: `${durationMs}ms`}} />
 		</svg>
 	);
 };
