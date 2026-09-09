@@ -1,4 +1,4 @@
-import {BoatState, WindState, areOnSameTack, evaluate, getPointOfSail, getSailTrimAngle, getTack, getWindAngle, getWindwardBoat, isClearAstern, isOverlapped} from "./rulesEngine";
+import {BoatState, WindState, areOnSameTack, boatPerimeterDistance, evaluate, getHullVertices, getPointOfSail, getSailTrimAngle, getTack, getWindAngle, getWindwardBoat, inferProperCourse, isClearAstern, isOverlapped, isSailingAboveProperCourse, isSailingBelowProperCourse} from "./rulesEngine";
 
 // All tests use wind blowing FROM the north (0°), i.e. down the screen.
 const WIND_NORTH: WindState = {direction: 0};
@@ -89,6 +89,29 @@ describe("areOnSameTack", () => {
 	});
 });
 
+describe("inferProperCourse", () => {
+	it("is close-hauled on port tack when the wind is from the north", () => {
+		// Heading east (90°) is port tack; close-hauled port = 45°.
+		expect(inferProperCourse(90, 0)).toBe(45);
+	});
+
+	it("is close-hauled on starboard tack when the wind is from the north", () => {
+		// Heading west (270°) is starboard tack; close-hauled starboard = 315°.
+		expect(inferProperCourse(270, 0)).toBe(315);
+	});
+
+	it("defaults to starboard close-hauled when head-to-wind", () => {
+		expect(inferProperCourse(0, 0)).toBe(315);
+	});
+
+	it("wraps correctly when the wind is from the east", () => {
+		// Wind from east (90°). Heading south (180°) => port tack => 90 + 45 = 135.
+		expect(inferProperCourse(180, 90)).toBe(135);
+		// Heading north (0°) => starboard tack => 90 - 45 = 45.
+		expect(inferProperCourse(0, 90)).toBe(45);
+	});
+});
+
 describe("isClearAstern / isOverlapped", () => {
 	it("detects a boat clear astern of another on the same heading", () => {
 		const ahead = boat("ahead", 600, 300, 90);
@@ -114,6 +137,72 @@ describe("getWindwardBoat", () => {
 		const south = boat("south", 300, 350, 90);
 		expect(getWindwardBoat(north, south, WIND_NORTH)).toBe("a");
 		expect(getWindwardBoat(south, north, WIND_NORTH)).toBe("b");
+	});
+});
+
+describe("getHullVertices", () => {
+	it("traces a pointed bow, not a rectangular corner", () => {
+		// Heading north (0°): the first vertex is the bow tip, sitting on the
+		// centreline ~98.5px ahead of centre — a 100×200 box would put a corner
+		// at (±50, −100) instead.
+		const b = boat("b", 0, 0, 0);
+		const v = getHullVertices(b);
+		expect(v[0].x).toBeCloseTo(-0.5, 0);
+		expect(v[0].y).toBeCloseTo(-98.55, 0);
+	});
+
+	it("is ~77.7px wide with the transom ~63px astern (matches the SVG)", () => {
+		const b = boat("b", 0, 0, 0);
+		const v = getHullVertices(b);
+		const xs = v.map((p) => p.x);
+		const ys = v.map((p) => p.y);
+		const beam = Math.max(...xs) - Math.min(...xs);
+		expect(beam).toBeCloseTo(77.7, 1);
+		// The flat stern sits ~63px behind centre, not 100px like a centred box.
+		expect(Math.max(...ys)).toBeCloseTo(63, 0);
+	});
+});
+
+describe("boatPerimeterDistance", () => {
+	it("measures the gap between the actual hull edges, not the bounding box", () => {
+		// Two boats heading east (90°), 200px centre-to-centre apart vertically.
+		// The real hull is only ~77.7px wide, so the edge-to-edge gap is
+		// 200 − 77.7 ≈ 122.3px (a 100px-wide bounding box would report 100px).
+		const a = boat("a", 300, 150, 90);
+		const b = boat("b", 300, 350, 90);
+		expect(boatPerimeterDistance(a, b)).toBeCloseTo(122.34, 0);
+	});
+
+	it("is zero when hulls are just touching", () => {
+		// Centres one beam (~77.7px) apart → the hull edges just meet.
+		const a = boat("a", 300, 150, 90);
+		const b = boat("b", 300, 150 + 77.66, 90);
+		expect(boatPerimeterDistance(a, b)).toBeCloseTo(0, 0);
+	});
+
+	it("returns a negative value equal to the overlap when hulls intersect", () => {
+		// Centres 70px apart, i.e. overlapping by 77.7 − 70 ≈ 7.7px.
+		const a = boat("a", 300, 150, 90);
+		const b = boat("b", 300, 220, 90);
+		const d = boatPerimeterDistance(a, b);
+		expect(d).toBeLessThan(0);
+		expect(d).toBeCloseTo(-7.66, 1);
+	});
+});
+
+describe("isSailingAboveProperCourse / isSailingBelowProperCourse", () => {
+	it("detects sailing above proper course (more upwind)", () => {
+		// Proper course is a beam reach (90°); heading 45° points more upwind.
+		expect(isSailingAboveProperCourse(45, 90, 0)).toBe(true);
+		expect(isSailingAboveProperCourse(90, 90, 0)).toBe(false);
+		expect(isSailingAboveProperCourse(135, 90, 0)).toBe(false);
+	});
+
+	it("detects sailing below proper course (more downwind)", () => {
+		// Proper course is a beam reach (90°); heading 135° points more downwind.
+		expect(isSailingBelowProperCourse(135, 90, 0)).toBe(true);
+		expect(isSailingBelowProperCourse(90, 90, 0)).toBe(false);
+		expect(isSailingBelowProperCourse(45, 90, 0)).toBe(false);
 	});
 });
 
@@ -163,15 +252,16 @@ describe("evaluate", () => {
 		const b = boat("b", 300, 350, 90);
 		const result = evaluate(a, b, WIND_NORTH); // Rule 11 decides
 
-		// 11 decides; 14 (boats 200px apart, within risk distance) co-applies;
-		// the rest are not applicable, sorted ascending.
-		expect(result.rules.map((r) => r.ruleNumber)).toEqual([11, 14, 10, 12, 13, 15, 16]);
+		// 11 decides; 14 (hulls ~122px apart, within risk distance) and 17 (the
+		// windward boat is on a beam reach, below her inferred close-hauled proper
+		// course) co-apply; the rest are not applicable, sorted ascending.
+		expect(result.rules.map((r) => r.ruleNumber)).toEqual([11, 14, 17, 10, 12, 13, 15, 16]);
 		expect(result.rules[0].deciding).toBe(true);
 		expect(result.rules[0].applicable).toBe(true);
 		// Only one rule should ever be deciding.
 		expect(result.rules.filter((r) => r.deciding).length).toBe(1);
-		// Rule 11 (deciding) and Rule 14 (close) are the only applicable ones here.
-		expect(result.rules.filter((r) => r.applicable).length).toBe(2);
+		// Rule 11 (deciding), Rule 14 (close) and Rule 17 (below proper course).
+		expect(result.rules.filter((r) => r.applicable).length).toBe(3);
 	});
 });
 
@@ -220,7 +310,7 @@ describe("evaluate — Rule 13 (While Tacking)", () => {
 describe("evaluate — Rule 14 (Avoiding Contact)", () => {
 	it("co-applies when boats are close, without deciding right of way", () => {
 		const a = boat("a", 300, 150, 90);
-		const b = boat("b", 300, 350, 90); // 200px apart → within risk distance
+		const b = boat("b", 300, 350, 90); // hulls 100px apart → within risk distance
 		const result = evaluate(a, b, WIND_NORTH);
 
 		const rule14 = result.rules.find((r) => r.ruleNumber === 14);
@@ -232,10 +322,24 @@ describe("evaluate — Rule 14 (Avoiding Contact)", () => {
 
 	it("does not apply when boats are far apart", () => {
 		const a = boat("a", 100, 100, 90);
-		const b = boat("b", 900, 100, 90); // 800px apart
+		const b = boat("b", 900, 100, 90); // hulls 600px apart
 		const result = evaluate(a, b, WIND_NORTH);
 
 		expect(result.rules.find((r) => r.ruleNumber === 14)?.applicable).toBe(false);
+	});
+
+	it("flags a collision (overlapping hulls) without changing right of way", () => {
+		const a = boat("a", 300, 150, 90);
+		const b = boat("b", 300, 220, 90); // hulls overlap by 30px
+		const result = evaluate(a, b, WIND_NORTH);
+
+		expect(result.collided).toBe(true);
+		expect(result.appliedRule).toBe(11); // right of way is still decided by 10–13
+
+		const rule14 = result.rules.find((r) => r.ruleNumber === 14);
+		expect(rule14?.applicable).toBe(true);
+		expect(rule14?.deciding).toBe(false); // Rule 14 is a limitation, not a right-of-way rule
+		expect(rule14?.detail).toContain("Collision");
 	});
 });
 
@@ -277,5 +381,54 @@ describe("evaluate — Rule 16 (Changing Course)", () => {
 		const result = evaluate(a, b, WIND_NORTH, {changingCourseA: true}); // a is give-way
 
 		expect(result.rules.find((r) => r.ruleNumber === 16)?.applicable).toBe(false);
+	});
+});
+
+describe("evaluate — Rule 17 (On the Same Tack; Proper Course)", () => {
+	it("17.1 applies when a leeward boat that came from astern sails above her proper course", () => {
+		// a is windward (north), b is leeward (south); both on port tack.
+		// Proper course is inferred as close-hauled on port tack (45°). b is
+		// pinching up to 30°, i.e. above her proper course.
+		const a = boat("a", 300, 150, 45);
+		const b = boat("b", 300, 350, 30);
+		const result = evaluate(a, b, WIND_NORTH, {establishedLeewardB: true});
+
+		const rule17 = result.rules.find((r) => r.ruleNumber === 17);
+		expect(rule17?.applicable).toBe(true);
+		expect(rule17?.deciding).toBe(false);
+		expect(rule17?.detail).toContain("17.1");
+		expect(result.appliedRule).toBe(11); // right-of-way decision unchanged
+	});
+
+	it("17.1 does not apply without the clear-astern-to-leeward transition", () => {
+		// Same geometry, but b has not (latch absent) established the overlap from astern.
+		const a = boat("a", 300, 150, 45);
+		const b = boat("b", 300, 350, 30);
+		const result = evaluate(a, b, WIND_NORTH); // no establishedLeewardB
+
+		expect(result.rules.find((r) => r.ruleNumber === 17)?.applicable).toBe(false);
+	});
+
+	it("17.2 applies when a windward boat sails below her proper course (not on a beat)", () => {
+		// a is windward (north) and is on a broad reach (135°), below her inferred
+		// close-hauled proper course (45°).
+		const a = boat("a", 300, 150, 135);
+		const b = boat("b", 300, 350, 90);
+		const result = evaluate(a, b, WIND_NORTH);
+
+		const rule17 = result.rules.find((r) => r.ruleNumber === 17);
+		expect(rule17?.applicable).toBe(true);
+		expect(rule17?.detail).toContain("17.2");
+		expect(result.appliedRule).toBe(11); // right-of-way decision unchanged
+	});
+
+	it("does not apply when the boats are more than two hull lengths apart", () => {
+		// b came from astern and sails above proper course, but they are 600px apart
+		// (> TWO_HULL_LENGTHS = 400).
+		const a = boat("a", 300, 100, 45);
+		const b = boat("b", 300, 700, 30);
+		const result = evaluate(a, b, WIND_NORTH, {establishedLeewardB: true});
+
+		expect(result.rules.find((r) => r.ruleNumber === 17)?.applicable).toBe(false);
 	});
 });

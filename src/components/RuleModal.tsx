@@ -52,6 +52,13 @@ const RuleModal = ({rule, onClose}: RuleModalProps) => {
 								<h3>In plain English</h3>
 								<p className="rule-modal__layman">{rule.laymanExplanation}</p>
 							</section>
+
+							{rule.note && (
+								<section>
+									<h3>Note</h3>
+									<p className="rule-modal__note">{rule.note}</p>
+								</section>
+							)}
 						</div>
 					</motion.div>
 				</motion.div>

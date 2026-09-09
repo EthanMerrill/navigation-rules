@@ -128,12 +128,32 @@
 	gap: 8px;
 }
 
+.rule-card__note {
+	font-size: 11px;
+	line-height: 1.4;
+	color: #856404;
+	font-style: italic;
+	margin: 4px 0 0;
+}
+
+.rule-modal__note {
+	font-size: 12px;
+	line-height: 1.5;
+	color: #856404;
+	background: #fff3cd;
+	border: 1px solid #ffeeba;
+	border-radius: 4px;
+	padding: 8px 10px;
+	margin: 0;
+}
+
 .rule-card {
 	border: 1px solid #e0e0e0;
 	border-radius: 5px;
 	background: #fff;
 	overflow: hidden;
 	cursor: pointer;
+	position: relative;
 	transition:
 		border-color 0.15s ease,
 		box-shadow 0.15s ease;
@@ -178,6 +198,10 @@
 	background: #9c7bff;
 }
 
+.rule-card__badge--collision {
+	background: #e53935;
+}
+
 .rule-card__body {
 	overflow: hidden;
 }
@@ -197,6 +221,46 @@
 	font-size: 12px;
 	color: #51b841;
 	font-weight: 600;
+}
+
+.rule-card__cooldown {
+	position: absolute;
+	right: 8px;
+	bottom: 8px;
+	width: 18px;
+	height: 18px;
+	overflow: visible;
+	pointer-events: none;
+}
+
+.rule-card__cooldown circle {
+	fill: none;
+	stroke-width: 2.5;
+}
+
+.rule-card__cooldown-track {
+	stroke: rgba(33, 150, 243, 0.22);
+}
+
+.rule-card__cooldown-fill {
+	stroke: #2196f3;
+	stroke-linecap: round;
+	transform: rotate(-90deg);
+	transform-origin: 50% 50%;
+	/* Drain full → empty; the exact duration is set inline from the rule's cooldownMs. */
+	animation-name: cooldown-drain;
+	animation-duration: 5s;
+	animation-timing-function: linear;
+	animation-fill-mode: forwards;
+}
+
+@keyframes cooldown-drain {
+	from {
+		stroke-dashoffset: 0;
+	}
+	to {
+		stroke-dashoffset: 56.5487;
+	}
 }
 
 .rule-card--deciding {
