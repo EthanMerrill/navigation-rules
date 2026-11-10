@@ -3,7 +3,7 @@ import type {EngineHistory, PairView, RuleDefinition, RuleEvaluation, RuleState}
 import {CONTACT_RISK_DISTANCE, isShownApplicable} from "../ui/ruleDisplay";
 import {PX_PER_HULL_LENGTH, toWorld} from "../view/scale";
 import {worldReducer, createDefaultWorld} from "../state/worldReducer";
-import {TWO_HULL_LENGTHS, HULL_ACTUAL_LENGTH, HULL_FOREMOST_OFFSET, HULL_AFTERMOST_OFFSET, computeFacts, computeMeetingFacts, pairKey, areOnSameTack, boatPerimeterDistance, compareRuleIds, evaluate, RULE_REGISTRY, getAheadBoat, getHullVertices, getPointOfSail, getSailTrimAngle, getTack, getTransomLine, getWindAngle, getWindwardBoat, inferProperCourse, isClearAstern, isOverlapped, isSailingAboveProperCourse, isSailingBelowProperCourse} from "./rulesEngine";
+import {TWO_HULL_LENGTHS, HULL_ACTUAL_LENGTH, HULL_FOREMOST_OFFSET, HULL_AFTERMOST_OFFSET, computeFacts, computeMeetingFacts, pairKey, areOnSameTack, boatPerimeterDistance, compareRuleIds, contentOf, evaluate, RULE_CONTENT, RULE_REGISTRY, getAheadBoat, getHullVertices, getPointOfSail, getSailTrimAngle, getTack, getTransomLine, getWindAngle, getWindwardBoat, inferProperCourse, isClearAstern, isOverlapped, isSailingAboveProperCourse, isSailingBelowProperCourse} from "./rulesEngine";
 
 // All tests use wind blowing FROM the north (0°), i.e. down the screen.
 const WIND_NORTH: WindState = {direction: 0};
@@ -399,6 +399,11 @@ describe("evaluate", () => {
 		const ids = ["18", "17.2", "10", "17.1", "9", "18.2b", "17"];
 		expect([...ids].sort(compareRuleIds)).toEqual(["9", "10", "17", "17.1", "17.2", "18", "18.2b"]);
 	});
+
+	it("orders 17.1 < 17.2 < 18 < 18.2a < 18.2b < 19", () => {
+		const ids = ["19", "18.2b", "17.2", "18", "18.2a", "17.1"];
+		expect([...ids].sort(compareRuleIds)).toEqual(["17.1", "17.2", "18", "18.2a", "18.2b", "19"]);
+	});
 });
 
 describe("evaluate — three boats", () => {
@@ -442,7 +447,42 @@ describe("evaluate — three boats", () => {
 	});
 });
 
+describe("rule content", () => {
+	it("has an evaluable content entry for every registry rule", () => {
+		for (const rule of RULE_REGISTRY) expect(contentOf(rule.id).evaluable, rule.id).toBe(true);
+	});
+
+	it("has a registry rule for every evaluable content entry", () => {
+		const registered = new Set(RULE_REGISTRY.map((r) => r.id));
+		for (const content of Object.values(RULE_CONTENT)) expect(registered.has(content.id) === content.evaluable, content.id).toBe(true);
+	});
+
+	it("throws a clear error for an unknown rule id", () => {
+		expect(() => contentOf("no-such-rule")).toThrow(/no-such-rule/);
+	});
+
+	it("exposes the reference-only rules in id order", () => {
+		const result = evaluate(worldOf([]), computeFacts(worldOf([])));
+		expect(result.referenceRules.every((c) => !c.evaluable)).toBe(true);
+		expect(result.referenceRules.map((c) => c.id)).toEqual([...result.referenceRules.map((c) => c.id)].sort(compareRuleIds));
+		expect(result.referenceRules.map((c) => c.id)).toContain("18.2a");
+		expect(result.rules.map((r) => r.id)).not.toContain("18");
+	});
+});
+
+/** Register display content for stub rules (the evaluator looks content up by id). */
+function withStubContent(id: string) {
+	beforeAll(() => {
+		RULE_CONTENT[id] = {id, title: "Stub", description: "", fullText: "", laymanExplanation: "", part: 2, evaluable: true};
+	});
+	afterAll(() => {
+		delete RULE_CONTENT[id];
+	});
+}
+
 describe("evaluate — rule suspension", () => {
+	withStubContent("99");
+
 	/** A stub rule that always fires for a pair and suspends rule 12. */
 	const suspender: RuleDefinition = {
 		id: "99",
@@ -450,10 +490,6 @@ describe("evaluate — rule suspension", () => {
 		section: "D",
 		scope: "pair",
 		suspends: ["12"],
-		title: "Stub suspender",
-		description: "",
-		fullText: "",
-		laymanExplanation: "",
 		evaluate: ({pair}) => [{ruleId: "99", boat: pair!.a.id, towards: pair!.b.id, kind: "giveRoom", detail: "stub"}],
 	};
 
@@ -699,6 +735,7 @@ describe("evaluate — Rule 17 (On the Same Tack; Proper Course)", () => {
 });
 
 describe("evaluate — obligations beyond keepClear (stub rule)", () => {
+	withStubContent("18.stub");
 	it("lets the Rule 11 right-of-way boat keep right of way while owing giveMarkRoom", () => {
 		// Stub for a future Section C rule: the right-of-way boat owes mark-room.
 		const stub: RuleDefinition = {
@@ -707,10 +744,6 @@ describe("evaluate — obligations beyond keepClear (stub rule)", () => {
 			section: "C",
 			scope: "pair",
 			needsRightOfWay: true,
-			title: "Stub mark-room",
-			description: "",
-			fullText: "",
-			laymanExplanation: "",
 			evaluate: ({pair, rightOfWay}) => {
 				if (!pair || !rightOfWay) return [];
 				const other = pair.a.id === rightOfWay ? pair.b.id : pair.a.id;

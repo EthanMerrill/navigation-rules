@@ -10,7 +10,8 @@
 
 import type {BoatState, WorldState} from "../model/world";
 import type {WorldFacts} from "./factsEngine";
-import {RULE_REGISTRY} from "./registry";
+import {RULE_CONTENT, contentOf} from "./content/rrs-2025";
+import {RULE_REGISTRY} from "./definitions";
 import type {BoatView, EngineHistory, EvalContext, Obligation, PairContext, PairView, RuleDefinition, RuleEvaluation, RuleId, RuleState} from "./types";
 
 /** A rule that fired (produced obligations) for one pair, one boat, or the whole world. */
@@ -161,22 +162,27 @@ export function evaluate(world: WorldState, facts: WorldFacts, history: EngineHi
 		const mine = fired.filter((f) => f.rule.id === rule.id);
 		const inFocus = mine.filter((f) => f.pair === focus && focus !== null);
 		const shown = (inFocus.length > 0 ? inFocus : mine)[0];
+		const {id, title, description, fullText, laymanExplanation, note, noteShort} = contentOf(rule.id);
 		return {
-			id: rule.id,
-			title: rule.title,
-			description: rule.description,
-			fullText: rule.fullText,
-			laymanExplanation: rule.laymanExplanation,
+			id,
+			title,
+			description,
+			fullText,
+			laymanExplanation,
+			note,
+			noteShort,
 			applicable: mine.length > 0,
 			deciding: inFocus.some((f) => f.obligations.some((o) => o.kind === "keepClear")),
 			detail: shown?.obligations[0].detail ?? "",
-			note: rule.note,
-			noteShort: rule.noteShort,
 		};
 	};
 	const states = registry.filter((r) => r.scope !== "reference").map(toState);
 	const byId = (a: RuleState, b: RuleState) => compareRuleIds(a.id, b.id);
 	const rules = [...states.filter((s) => s.deciding).sort(byId), ...states.filter((s) => !s.deciding && s.applicable).sort(byId), ...states.filter((s) => !s.applicable).sort(byId)];
 
-	return {obligations, boats, pairs, focusPair: focus, rules};
+	const referenceRules = Object.values(RULE_CONTENT)
+		.filter((c) => !c.evaluable)
+		.sort((x, y) => compareRuleIds(x.id, y.id));
+
+	return {obligations, boats, pairs, focusPair: focus, rules, referenceRules};
 }

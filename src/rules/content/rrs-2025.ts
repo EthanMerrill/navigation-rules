@@ -1,0 +1,181 @@
+/**
+ * Rule content — the display text for each rule of the Racing Rules of Sailing
+ * (2025–2028 edition), keyed by rule id.
+ *
+ * The RRS text is © World Sailing; this file reproduces it for education.
+ *
+ * Entries with `evaluable: true` have a matching predicate in
+ * `rules/definitions`; reference-only entries (`evaluable: false`) are shown for
+ * context and become evaluable as they are implemented. Titles, descriptions
+ * and plain-English explanations of the reference-only entries are summaries,
+ * not official wording.
+ */
+
+import type {RuleId} from "../types";
+
+/** The edition of the Racing Rules of Sailing this content reproduces. */
+export const RRS_EDITION = "2025-2028";
+
+/** Display content for one rule. */
+export interface RuleContent {
+	id: RuleId;
+	title: string;
+	/** Static, always-visible short description of the rule. */
+	description: string;
+	/** The full official text of the rule (2025–2028 RRS); empty when not yet transcribed. */
+	fullText: string;
+	/** A plain-English explanation of what the rule means. */
+	laymanExplanation: string;
+	part: 1 | 2 | 3 | 4 | 5;
+	/** Section letter, for rules in a Part that has sections (Part 2). */
+	section?: "A" | "B" | "C" | "D";
+	/** True when a predicate for this rule exists in the rule registry. */
+	evaluable: boolean;
+	/** A development note describing a known approximation/constraint in this rule. */
+	note?: string;
+	/** A shorter version of `note`, shown on the rule card while it is active. */
+	noteShort?: string;
+}
+
+/** Rules that are evaluated by the engine (Part 2, Sections A and B). */
+const EVALUABLE_CONTENT: RuleContent[] = [
+	{
+		id: "10",
+		part: 2,
+		section: "A",
+		evaluable: true,
+		title: "On Opposite Tacks",
+		description: "A port-tack boat must keep clear of a starboard-tack boat.",
+		fullText: "When boats are on opposite tacks, a port-tack boat shall keep clear of a starboard-tack boat.",
+		laymanExplanation: "When two boats are on different tacks — one has the wind coming over its left (port) side and the other over its right (starboard) side — the port-tack boat must get out of the way of the starboard-tack boat. Starboard has right of way.",
+	},
+	{
+		id: "11",
+		part: 2,
+		section: "A",
+		evaluable: true,
+		title: "On the Same Tack, Overlapped",
+		description: "The windward boat must keep clear of the leeward boat.",
+		fullText: "When boats are on the same tack and overlapped, a windward boat shall keep clear of a leeward boat.",
+		laymanExplanation: "When two boats are on the same tack and side-by-side, the boat that is upwind (closer to where the wind is coming from) must stay out of the way of the boat that is downwind (leeward). The leeward boat has right of way.",
+	},
+	{
+		id: "12",
+		part: 2,
+		section: "A",
+		evaluable: true,
+		title: "On the Same Tack, Not Overlapped",
+		description: "The boat clear astern must keep clear of the boat clear ahead.",
+		fullText: "When boats are on the same tack and not overlapped, a boat clear astern shall keep clear of a boat clear ahead.",
+		laymanExplanation: "When two boats are on the same tack and one is clearly in front of the other (not side-by-side), the boat behind must stay out of the way of the boat in front. The boat ahead has right of way.",
+	},
+	{
+		id: "13",
+		part: 2,
+		section: "A",
+		evaluable: true,
+		title: "While Tacking",
+		description: "After a boat passes head to wind, she must keep clear of other boats until she is on a close-hauled course.",
+		fullText: "After a boat passes head to wind, she shall keep clear of other boats until she is on a close-hauled course. During that time rules 10, 11 and 12 do not apply. If two boats are subject to this rule at the same time, the one on the other's port side or the one astern shall keep clear.",
+		laymanExplanation: "A boat that is turning through the wind (changing from one tack to the other) loses its normal rights and must stay out of everyone's way until it has finished the turn and is sailing normally again. While it is turning, the usual port/starboard and windward/leeward rules do not apply to it.",
+	},
+	{
+		id: "14",
+		part: 2,
+		section: "B",
+		evaluable: true,
+		title: "Avoiding Contact",
+		description: "A boat shall avoid contact with another boat if reasonably possible.",
+		fullText: "A boat shall avoid contact with another boat if reasonably possible. However, a right-of-way boat, or one sailing within the room or mark-room to which she is entitled, need not act to avoid contact until it is clear that the other boat is not keeping clear or giving room or mark-room.",
+		laymanExplanation: "Both boats must always try not to collide. When they get close together, avoiding contact becomes everyone's responsibility — even the boat with right of way has to act if a crash is about to happen.",
+	},
+	{
+		id: "15",
+		part: 2,
+		section: "B",
+		evaluable: true,
+		title: "Acquiring Right of Way",
+		description: "When a boat acquires right of way, she shall initially give the other boat room to keep clear.",
+		fullText: "When a boat acquires right of way, she shall initially give the other boat room to keep clear. She shall not sail to change course to sail a course that would immediately require the other boat to take avoiding action.",
+		laymanExplanation: "When you have just gained the right of way, you can't press your advantage straight away — you must first give the other boat enough room to get out of your way.",
+	},
+	{
+		id: "16",
+		part: 2,
+		section: "B",
+		evaluable: true,
+		title: "Changing Course",
+		description: "When a right-of-way boat changes course, she shall give the other boat room to keep clear.",
+		fullText: "When a right-of-way boat changes course, she shall give the other boat room to keep clear. In addition, when after the starting signal a port-tack boat is keeping clear by sailing to pass astern of a starboard-tack boat, the starboard-tack boat shall not change course if as a result the port-tack boat would immediately need to change course to continue keeping clear.",
+		laymanExplanation: "Even if you have right of way, you cannot suddenly alter course into the other boat — if you change direction, you must leave them room to stay clear.",
+	},
+	{
+		id: "17.1",
+		part: 2,
+		section: "B",
+		evaluable: true,
+		title: "On the Same Tack; Proper Course (leeward from astern)",
+		description: "A boat that establishes a leeward overlap from astern must not sail above her proper course.",
+		fullText: "If a boat clear astern becomes overlapped within two of her hull lengths to leeward of a boat on the same tack, she shall not sail above her proper course while they remain on the same tack and overlapped within that distance.",
+		laymanExplanation: "When you sail up from behind and establish an overlap to leeward of another boat, you cannot then turn up toward the wind to push them — you may sail no higher than the course you would sail toward the finish (your proper course).",
+		note: "A boat's proper course is assumed to be close-hauled on her current tack — the finish is assumed to be upwind. Until a mark/finish is modelled, Rule 17 treats any windward boat sailing below close-hauled as sailing below her proper course.",
+		noteShort: "Proper course assumed close-hauled (finish upwind).",
+	},
+	{
+		id: "17.2",
+		part: 2,
+		section: "B",
+		evaluable: true,
+		title: "On the Same Tack; Proper Course (windward boat)",
+		description: "A windward boat close to a leeward boat must not sail below her proper course unless she gybes.",
+		fullText: "Except on a beat to windward, while a boat is less than two of her hull lengths from a leeward boat or a boat clear astern that is steering a course to pass to leeward, she shall not sail below her proper course unless she gybes.",
+		laymanExplanation: "A windward boat sailing close above a leeward boat cannot bear away below her proper course (unless she gybes) — she cannot force the leeward boat down the course.",
+		note: "A boat's proper course is assumed to be close-hauled on her current tack — the finish is assumed to be upwind. Until a mark/finish is modelled, Rule 17 treats any windward boat sailing below close-hauled as sailing below her proper course.",
+		noteShort: "Proper course assumed close-hauled (finish upwind).",
+	},
+];
+
+/**
+ * Reference-only rules: shown for context, not yet evaluated.
+ * TODO: official text — `fullText` is empty until it is transcribed from the RRS.
+ */
+const REFERENCE_CONTENT: RuleContent[] = [
+	{id: "1", part: 1, evaluable: false, title: "Safety", description: "Boats must help those in danger and carry life-saving equipment.", fullText: "", laymanExplanation: "A boat or competitor must give all possible help to anyone in danger, and must carry adequate life-saving equipment. Safety comes before the right-of-way rules."},
+	{id: "2", part: 1, evaluable: false, title: "Fair Sailing", description: "Boats and owners must compete in compliance with recognized principles of sportsmanship and fair play.", fullText: "", laymanExplanation: "Race honestly and sportingly. A boat may only be penalised for breaking this rule if it is clear she has done so."},
+	{id: "3", part: 1, evaluable: false, title: "Acceptance of the Rules", description: "By entering a race, competitors agree to be governed by the rules.", fullText: "", laymanExplanation: "Taking part means you accept the racing rules and the decisions made under them, and agree to resolve disputes through the proper procedures."},
+	{id: "18", part: 2, section: "C", evaluable: false, title: "Mark-Room", description: "Rules for giving room at a mark when boats are about to round or pass it.", fullText: "", laymanExplanation: "When boats are about to round or pass a mark on the same side, the rule decides who must give whom room to do it safely."},
+	{id: "18.1", part: 2, section: "C", evaluable: false, title: "Mark-Room: When Rule 18 Applies", description: "Rule 18 applies between boats at a mark they are required to leave on the same side.", fullText: "", laymanExplanation: "Rule 18 only works when both boats must pass the mark on the same side; it does not apply at a starting mark surrounded by starting-line obstructions, or between boats on opposite tacks on a beat."},
+	{id: "18.2a", part: 2, section: "C", evaluable: false, title: "Rule 18.2(a)", description: "Sub-rule (a) of rule 18.2; to be summarised when it is implemented.", fullText: "", laymanExplanation: "See rule 18.2; a plain-English explanation will be added when this sub-rule is implemented."},
+	{id: "18.2b", part: 2, section: "C", evaluable: false, title: "Rule 18.2(b)", description: "Sub-rule (b) of rule 18.2; to be summarised when it is implemented.", fullText: "", laymanExplanation: "See rule 18.2; a plain-English explanation will be added when this sub-rule is implemented."},
+	{id: "18.2c", part: 2, section: "C", evaluable: false, title: "Rule 18.2(c)", description: "Sub-rule (c) of rule 18.2; to be summarised when it is implemented.", fullText: "", laymanExplanation: "See rule 18.2; a plain-English explanation will be added when this sub-rule is implemented."},
+	{id: "18.2d", part: 2, section: "C", evaluable: false, title: "Rule 18.2(d)", description: "Sub-rule (d) of rule 18.2; to be summarised when it is implemented.", fullText: "", laymanExplanation: "See rule 18.2; a plain-English explanation will be added when this sub-rule is implemented."},
+	{id: "18.3", part: 2, section: "C", evaluable: false, title: "Tacking in the Zone", description: "A boat tacking in the zone must not cause a boat to break rule 10 at the mark.", fullText: "", laymanExplanation: "Restrictions on a boat that tacks within the zone of a mark when another boat then has to keep clear."},
+	{id: "18.4", part: 2, section: "C", evaluable: false, title: "Gybing", description: "An inside boat that must gybe at a mark sails no farther from the mark than needed.", fullText: "", laymanExplanation: "When an inside overlapped right-of-way boat must gybe at a mark, she must sail no farther from the mark than needed to sail her proper course."},
+	{id: "19", part: 2, section: "C", evaluable: false, title: "Room to Pass an Obstruction", description: "Rules for giving room to pass an obstruction.", fullText: "", laymanExplanation: "When boats are sailing past an obstruction, the rule decides who must give room to whom."},
+	{id: "19.1", part: 2, section: "C", evaluable: false, title: "Obstruction: When Rule 19 Applies", description: "Rule 19 applies at an obstruction, but not at a mark.", fullText: "", laymanExplanation: "The room-to-pass rules apply to boats about to pass an obstruction on the same side; at a mark, rule 18 applies instead."},
+	{id: "19.2a", part: 2, section: "C", evaluable: false, title: "Obstruction: Right-of-Way Boat", description: "A right-of-way boat may choose to pass the obstruction on either side.", fullText: "", laymanExplanation: "The right-of-way boat chooses which side to pass the obstruction, subject to the rest of the rule."},
+	{id: "19.2b", part: 2, section: "C", evaluable: false, title: "Obstruction: Giving Room Overlapped", description: "The outside boat gives the inside boat room between her and the obstruction.", fullText: "", laymanExplanation: "While overlapped at an obstruction, the outside boat must give the inside boat room to pass between her and the obstruction."},
+	{id: "19.2c", part: 2, section: "C", evaluable: false, title: "Rule 19.2(c)", description: "Sub-rule (c) of rule 19.2; to be summarised when it is implemented.", fullText: "", laymanExplanation: "See rule 19.2; a plain-English explanation will be added when this sub-rule is implemented."},
+	{id: "20", part: 2, section: "C", evaluable: false, title: "Room to Tack at an Obstruction", description: "A boat may hail for room to tack to avoid an obstruction.", fullText: "", laymanExplanation: "A boat sailing close-hauled that needs to tack to avoid an obstruction may hail for room, and the hailed boat must respond."},
+	{id: "20.1", part: 2, section: "C", evaluable: false, title: "Hailing", description: "A boat may hail for room to tack and avoid a boat on the same tack.", fullText: "", laymanExplanation: "The hailing boat calls for room to tack, and must be ready to tack at once."},
+	{id: "20.2", part: 2, section: "C", evaluable: false, title: "Responding", description: "A hailed boat must tack or reply and give room.", fullText: "", laymanExplanation: "The hailed boat must either tack as soon as possible or reply that she will, and then give room."},
+	{id: "20.3", part: 2, section: "C", evaluable: false, title: "Passing Head to Wind", description: "Limits on how a hailing boat tacks and on the hailed boat.", fullText: "", laymanExplanation: "After the hailing boat tacks, the hailed boat may no longer have to respond, and the hailing boat must tack promptly."},
+	{id: "21", part: 2, section: "D", evaluable: false, title: "Exoneration", description: "A boat that breaks a rule while entitled to room or mark-room is exonerated.", fullText: "", laymanExplanation: "If a boat breaks a rule of Section A while sailing within the room or mark-room she is entitled to, she is not penalised for it."},
+	{id: "22", part: 2, section: "D", evaluable: false, title: "Starting Errors; Taking Penalties; Backing a Sail", description: "Boats returning to start, taking a penalty or backing a sail must keep clear.", fullText: "", laymanExplanation: "A boat that is returning to the pre-start side, taking a penalty, or moving astern by backing a sail has to keep clear of other boats."},
+	{id: "23", part: 2, section: "D", evaluable: false, title: "Capsized, Anchored or Aground; Rescuing", description: "A boat that is capsized, anchored, aground or rescuing must be kept clear of.", fullText: "", laymanExplanation: "Boats should keep clear of a boat that is capsized, anchored or aground, or is rescuing a person or vessel."},
+	{id: "24", part: 2, section: "D", evaluable: false, title: "Interfering with Another Boat", description: "A boat not racing must not interfere with a boat that is racing.", fullText: "", laymanExplanation: "A boat that is not racing must keep clear of boats that are, and boats must not interfere with another boat sailing a course she is entitled to."},
+	{id: "30", part: 3, evaluable: false, title: "Starting Penalties", description: "Penalties for being over the line early, such as the I flag and Z flag rules.", fullText: "", laymanExplanation: "Boats that are on the course side of the starting line near the start may have to return and start correctly, or accept a penalty, depending on the flag displayed."},
+	{id: "31", part: 3, evaluable: false, title: "Touching a Mark", description: "A boat shall not touch a starting mark, a mark that begins, bounds or ends the leg, or a finishing mark.", fullText: "", laymanExplanation: "If you touch a mark of the course you must take a penalty by promptly doing a turns penalty."},
+	{id: "42", part: 4, evaluable: false, title: "Propulsion", description: "A boat shall compete by using only the wind and water to increase, maintain or decrease her speed.", fullText: "", laymanExplanation: "You can only use the wind and the water to drive the boat. Pumping, rocking and sculling are generally not allowed except where the rule specifically permits."},
+	{id: "44", part: 4, evaluable: false, title: "Penalties at the Time of an Incident", description: "A boat that may have broken a rule may take a penalty to avoid a hearing.", fullText: "", laymanExplanation: "Doing a turns penalty promptly after an incident, as the rule provides, can avoid a protest and a possible disqualification."},
+];
+
+/** Every rule's content, keyed by rule id. */
+export const RULE_CONTENT: Record<RuleId, RuleContent> = Object.fromEntries([...EVALUABLE_CONTENT, ...REFERENCE_CONTENT].map((c) => [c.id, c]));
+
+/** The content for a rule id; throws for an id with no content entry. */
+export function contentOf(id: RuleId): RuleContent {
+	const content = RULE_CONTENT[id];
+	if (!content) throw new Error(`No rule content for rule id "${id}"`);
+	return content;
+}

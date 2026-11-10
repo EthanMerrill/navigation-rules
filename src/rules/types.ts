@@ -5,6 +5,7 @@
  */
 
 import type {BoatState, WorldState} from "../model/world";
+import type {RuleContent} from "./content/rrs-2025";
 import type {PairFacts, PointOfSail, Tack, WorldFacts} from "./factsEngine";
 
 /** Rule identifier as printed in the RRS: "10", "17.1", later "18.2b". */
@@ -67,7 +68,7 @@ export interface PairEvalContext extends EvalContext {
 	pair: PairContext;
 }
 
-/** A single rule: identity, how it relates to other rules, and its predicate. */
+/** A single rule: identity, how it relates to other rules, and its predicate. Display text is in `content/rrs-2025.ts`. */
 export interface RuleDefinition {
 	id: RuleId;
 	part: 2;
@@ -80,18 +81,6 @@ export interface RuleDefinition {
 	needsRightOfWay?: boolean;
 	/** Obligations this rule imposes in the given context; empty when it does not apply. */
 	evaluate: (ctx: EvalContext) => Obligation[];
-
-	// Display content — Phase 4 moves these into a separate content file.
-	title: string;
-	description: string;
-	/** The full official text of the rule (2025–2028 RRS). */
-	fullText: string;
-	/** A plain-English explanation of what the rule means. */
-	laymanExplanation: string;
-	/** A development note describing a known approximation/constraint in this rule. */
-	note?: string;
-	/** A shorter version of `note`, shown on the rule card while it is active. */
-	noteShort?: string;
 }
 
 /** Per-boat rule outcome, ready for the UI to render. */
@@ -141,19 +130,11 @@ export interface PairView {
  * the rule fired (after suspension) for any pair or boat. `deciding`: it
  * produced the keepClear obligation in the focus pair.
  */
-export interface RuleState {
-	id: RuleId;
-	title: string;
-	/** Static, always-visible short description of the rule. */
-	description: string;
-	fullText: string;
-	laymanExplanation: string;
+export interface RuleState extends Pick<RuleContent, "id" | "title" | "description" | "fullText" | "laymanExplanation" | "note" | "noteShort"> {
 	applicable: boolean;
 	deciding: boolean;
 	/** Why the rule applies (empty when it does not). */
 	detail: string;
-	note?: string;
-	noteShort?: string;
 }
 
 /** The result of evaluating a world. */
@@ -170,4 +151,6 @@ export interface RuleEvaluation {
 	 * rules by id, then non-applicable rules by id.
 	 */
 	rules: RuleState[];
+	/** Reference-only rules (no predicate yet), in rule-id order, for listing alongside `rules`. */
+	referenceRules: RuleContent[];
 }
