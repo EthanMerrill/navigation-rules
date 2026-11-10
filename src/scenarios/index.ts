@@ -90,6 +90,15 @@ export const SCENARIOS: Scenario[] = [
 		description: "Boat 1 is close to a large obstruction. Boat 2 is clear astern; drag her forward until she is overlapped inside boat 1. There is no room for her to pass between boat 1 and the obstruction, so she is not entitled to room (Rule 19.2(c)).",
 		world: worldOf([boat("boat1", 880, 480, 90), boat("boat2", 400, 570, 90)], {obstructions: [LARGE_OBSTRUCTION]}),
 	},
+	{
+		id: "room-to-tack",
+		title: "Room to tack",
+		description: "Two close-hauled boats on starboard tack head for an obstruction. Boat 1 has hailed boat 2 for room to tack (Rule 20): boat 2 must tack or reply \"You tack\". Use the hail controls to reply.",
+		world: worldOf([boat("boat1", 900, 650, 315), boat("boat2", 1006, 544, 315)], {
+			obstructions: [{id: "obstruction1", ...toWorld({x: 620, y: 400}), radius: 0.7}],
+			hails: [{id: "hail1", from: "boat1", to: "boat2", kind: "roomToTack", at: 0}],
+		}),
+	},
 ];
 
 /** The scenario with the given id, or undefined. */

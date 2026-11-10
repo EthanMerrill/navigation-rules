@@ -18,3 +18,4 @@ export * from "./evaluate";
 export * from "./memory";
 export * from "./step";
 export * from "./obstructionFacts";
+export * from "./hails";

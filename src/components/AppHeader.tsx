@@ -1,3 +1,4 @@
+import type {ReactNode} from "react";
 import type {WindState} from "../model/world";
 import {SCENARIOS} from "../scenarios";
 
@@ -10,6 +11,8 @@ interface AppHeaderProps {
 	onScenarioChange: (id: string) => void;
 	/** Reload the current scenario. */
 	onReset: () => void;
+	/** Extra control rows shown below the scenario picker (the hail controls). */
+	children?: ReactNode;
 }
 
 const COMPASS_POINTS = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"] as const;
@@ -26,7 +29,7 @@ function compassLabel(direction: number): string {
 	return COMPASS_POINTS[idx];
 }
 
-const AppHeader = ({wind, onWindChange, scenarioId, onScenarioChange, onReset}: AppHeaderProps) => {
+const AppHeader = ({wind, onWindChange, scenarioId, onScenarioChange, onReset, children}: AppHeaderProps) => {
 	return (
 		<header className="app-header">
 			<div className="control-bar">
@@ -63,6 +66,7 @@ const AppHeader = ({wind, onWindChange, scenarioId, onScenarioChange, onReset}: 
 						Reset
 					</button>
 				</div>
+				{children}
 			</div>
 		</header>
 	);

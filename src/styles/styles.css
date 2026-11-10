@@ -652,3 +652,8 @@
 .reset-button:hover {
 	background: #f0f0f0;
 }
+
+.reset-button:disabled {
+	opacity: 0.45;
+	cursor: not-allowed;
+}

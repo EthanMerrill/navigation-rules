@@ -3,6 +3,7 @@ import "./App.css";
 import "./styles/styles.css";
 import RulesSidebar from "./components/RulesSidebar";
 import AppHeader from "./components/AppHeader";
+import HailControls from "./components/HailControls";
 import MoveableBoat from "./components/MoveableBoat";
 import MarkMarker from "./components/MarkMarker";
 import ObstructionMarker from "./components/ObstructionMarker";
@@ -54,8 +55,9 @@ function App() {
 				onScenarioChange={(id) => {
 					window.location.hash = id ? scenarioHash(id) : "";
 				}}
-				onReset={loadRoute}
-			/>
+				onReset={loadRoute}>
+				<HailControls world={world} dispatch={dispatch} />
+			</AppHeader>
 			<RulesSidebar evaluation={evaluation} />
 			{world.obstructions.map((obstruction) => (
 				<ObstructionMarker key={obstruction.id} obstruction={obstruction} dispatch={dispatch} />

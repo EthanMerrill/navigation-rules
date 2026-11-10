@@ -5,7 +5,7 @@ describe("scenarios", () => {
 	it("have unique ids", () => {
 		const ids = SCENARIOS.map((s) => s.id);
 		expect(new Set(ids).size).toBe(ids.length);
-		expect(ids).toEqual(expect.arrayContaining(["port-starboard", "windward-leeward", "clear-astern", "windward-mark", "leeward-mark", "tack-in-zone", "obstruction", "continuing-obstruction"]));
+		expect(ids).toEqual(expect.arrayContaining(["port-starboard", "windward-leeward", "clear-astern", "windward-mark", "leeward-mark", "tack-in-zone", "obstruction", "continuing-obstruction", "room-to-tack"]));
 	});
 
 	it.each(SCENARIOS.map((s) => [s.id, s] as const))("%s has two or more boats and valid legs", (_id, scenario) => {

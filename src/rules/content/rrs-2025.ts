@@ -217,6 +217,18 @@ const EVALUABLE_CONTENT: RuleContent[] = [
 		note: "At the moment the overlap begins, room is approximated as a gap of at least one beam (about 0.48 hull lengths) between the outside boat's hull and the obstruction's edge; the result is kept in engine memory while the overlap lasts. Every obstruction is treated as continuing. While it applies, the squeezing-in boat shows an avoid-contact duty so the rule can appear; it does not change right of way.",
 		noteShort: "Room = a beam's gap when the overlap began.",
 	},
+	{
+		id: "20.2",
+		part: 2,
+		section: "C",
+		evaluable: true,
+		title: "Responding to a Hail",
+		description: "A hailed boat must respond by tacking as soon as possible, or by replying \"You tack\" and then giving the hailing boat room to tack and avoid her.",
+		fullText: "", // TODO: official text of rule 20.2
+		laymanExplanation: "When a boat has validly hailed for room to tack, the hailed boat has to answer straight away. Either she tacks as soon as she can, or she calls \"You tack\". After that reply she must give the hailing boat room, and the hailing boat must tack as soon as possible.",
+		note: "Hails are made with the hail controls and stay until cleared (they do not expire). A hail is valid when the hailer is close-hauled or above, on the same tack as the hailed boat, and approaching an obstruction; the need for a substantial course change is not modelled. Rule 20.1 (validity) and 20.3 (passing the hail on) have no cards of their own.",
+		noteShort: "Valid hail: close-hauled, same tack, approaching an obstruction.",
+	},
 ];
 
 /**
@@ -234,8 +246,7 @@ const REFERENCE_CONTENT: RuleContent[] = [
 	{id: "19.1", part: 2, section: "C", evaluable: false, title: "Obstruction: When Rule 19 Applies", description: "Rule 19 applies at an obstruction, but not at a mark.", fullText: "", laymanExplanation: "The room-to-pass rules apply to boats about to pass an obstruction on the same side; at a mark, rule 18 applies instead."},
 	{id: "19.2a", part: 2, section: "C", evaluable: false, title: "Obstruction: Right-of-Way Boat", description: "A right-of-way boat may choose to pass the obstruction on either side.", fullText: "", laymanExplanation: "The right-of-way boat chooses which side to pass the obstruction, subject to the rest of the rule. This is a permission rather than a duty, so the simulator does not emit an obligation for it."},
 	{id: "20", part: 2, section: "C", evaluable: false, title: "Room to Tack at an Obstruction", description: "A boat may hail for room to tack to avoid an obstruction.", fullText: "", laymanExplanation: "A boat sailing close-hauled that needs to tack to avoid an obstruction may hail for room, and the hailed boat must respond."},
-	{id: "20.1", part: 2, section: "C", evaluable: false, title: "Hailing", description: "A boat may hail for room to tack and avoid a boat on the same tack.", fullText: "", laymanExplanation: "The hailing boat calls for room to tack, and must be ready to tack at once."},
-	{id: "20.2", part: 2, section: "C", evaluable: false, title: "Responding", description: "A hailed boat must tack or reply and give room.", fullText: "", laymanExplanation: "The hailed boat must either tack as soon as possible or reply that she will, and then give room."},
+	{id: "20.1", part: 2, section: "C", evaluable: false, title: "Hailing", description: "A boat close-hauled or above, approaching an obstruction, may hail for room to tack and avoid a boat on the same tack.", fullText: "", laymanExplanation: "The hailing boat calls for room to tack, and must be ready to tack at once. A hail is only valid when she is sailing close-hauled or above, is approaching an obstruction and needs a substantial course change to avoid it safely. The simulator checks the first two when deciding whether a hail has any effect (see rule 20.2)."},
 	{id: "20.3", part: 2, section: "C", evaluable: false, title: "Passing Head to Wind", description: "Limits on how a hailing boat tacks and on the hailed boat.", fullText: "", laymanExplanation: "After the hailing boat tacks, the hailed boat may no longer have to respond, and the hailing boat must tack promptly."},
 	{id: "21", part: 2, section: "D", evaluable: false, title: "Exoneration", description: "A boat that breaks a rule while entitled to room or mark-room is exonerated.", fullText: "", laymanExplanation: "If a boat breaks a rule of Section A while sailing within the room or mark-room she is entitled to, she is not penalised for it."},
 	{id: "22", part: 2, section: "D", evaluable: false, title: "Starting Errors; Taking Penalties; Backing a Sail", description: "Boats returning to start, taking a penalty or backing a sail must keep clear.", fullText: "", laymanExplanation: "A boat that is returning to the pre-start side, taking a penalty, or moving astern by backing a sail has to keep clear of other boats."},

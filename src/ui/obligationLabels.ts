@@ -14,6 +14,7 @@ export const OBLIGATION_LABELS: Record<ObligationKind, (towards?: string) => str
 	notAboveProperCourse: () => "No higher than proper course",
 	notBelowProperCourse: () => "No lower than proper course",
 	sailNoFartherFromMark: () => "Sail no farther from the mark than needed",
+	tackAsSoonAsPossible: () => "Tack as soon as possible",
 	notCauseAboveCloseHauled: (towards) => (towards ? `Don't force ${towards} above close-hauled` : "Don't force a boat above close-hauled"),
 };
 

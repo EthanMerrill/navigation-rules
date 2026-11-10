@@ -56,6 +56,21 @@ export interface CourseState {
 	legs: {toMarkId: string}[];
 }
 
+/**
+ * A hail: something one boat calls to another (Rule 20). Hails are user actions
+ * kept in the world, so rules can read them like any other input.
+ * `roomToTack`: `from` hails `to` for room to tack and avoid her (20.1).
+ * `youTack`: `from`, the hailed boat, replies "You tack" to `to`, the hailer (20.2).
+ */
+export interface Hail {
+	id: string;
+	from: string;
+	to: string;
+	kind: "roomToTack" | "youTack";
+	/** When the hail was made (ms, the clock of the caller); informational. Hails do not expire on their own. */
+	at: number;
+}
+
 /** Everything the facts and rules layers need to know about the situation. */
 export interface WorldState {
 	boats: BoatState[];
@@ -64,4 +79,6 @@ export interface WorldState {
 	obstructions: Obstruction[];
 	race: RaceState;
 	course: CourseState;
+	/** Hails currently in the air (Rule 20); cleared by the user and on scenario load. */
+	hails: Hail[];
 }

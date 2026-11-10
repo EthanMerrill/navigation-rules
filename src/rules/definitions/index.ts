@@ -10,7 +10,8 @@
 import type {RuleDefinition} from "../types";
 import {SECTION_A_RULES} from "./sectionA";
 import {SECTION_B_RULES} from "./sectionB";
+import {HAIL_RULES} from "./hails";
 import {OBSTRUCTION_RULES} from "./obstructions";
 import {SECTION_C_RULES} from "./sectionC";
 
-export const RULE_REGISTRY: RuleDefinition[] = [...SECTION_A_RULES, ...SECTION_B_RULES, ...SECTION_C_RULES, ...OBSTRUCTION_RULES];
+export const RULE_REGISTRY: RuleDefinition[] = [...SECTION_A_RULES, ...SECTION_B_RULES, ...SECTION_C_RULES, ...OBSTRUCTION_RULES, ...HAIL_RULES];
