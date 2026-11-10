@@ -6,6 +6,7 @@
 
 import type {BoatState, WorldState} from "../model/world";
 import type {RuleContent} from "./content/rrs-2025";
+import type {PairMarkMemory} from "./memory";
 import type {PairFacts, PointOfSail, Tack, WorldFacts} from "./factsEngine";
 
 /** Rule identifier as printed in the RRS: "10", "17.1", later "18.2b". */
@@ -38,6 +39,12 @@ export interface EngineHistory {
 	changingCourse?: Record<string, boolean>;
 	/** Pair key → boat id → true when that boat established a leeward overlap from clear astern (Rule 17.1). */
 	leewardFromAstern?: Record<string, Record<string, boolean>>;
+	/**
+	 * `pairMarkKey` (`pairKey|markId`) → the state of the pair when the first of
+	 * them reached that mark's zone (Rule 18.2(b)). Only live latches: slots whose
+	 * mark-room entitlement has been released (18.2(d)) are left out.
+	 */
+	markEntry?: Record<string, PairMarkMemory>;
 }
 
 /** The two boats of a pair-scope evaluation. `a` is the boat with the smaller id. */

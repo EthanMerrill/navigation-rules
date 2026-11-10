@@ -139,3 +139,60 @@ describe("step — Rule 15 and 16", () => {
 		expect(evaluations.map((e) => fired(e, "16"))).toEqual([false, false, true, false]);
 	});
 });
+
+describe("step — zone-entry memory (Rule 18.2b)", () => {
+	// Wind from the north, windward mark at (10, 10) to be left to port. Boats on
+	// starboard tack, close-hauled (heading 315), approach from the south-east.
+	const mark = {id: "m", x: 10, y: 10, roundingSide: "port" as const, kind: "windward" as const};
+	const markWorld = (...boats: BoatState[]): WorldState => ({...worldOf(...boats), marks: [mark], course: {legs: [{toMarkId: "m"}]}});
+	const key = "a|b|m";
+	const far = (id: string, x: number, y: number) => boat(id, x, y, 315);
+
+	// Abreast, `a` on the mark side of `b` (inside); out of the zone, then in it.
+	const apart = markWorld(far("a", 14.5, 15.5), far("b", 16, 14));
+	const together = markWorld(far("a", 11.5, 12.5), far("b", 13, 11));
+
+	it("records overlap and the inside boat when the first boat reaches the zone", () => {
+		const {memory} = run([apart, together]);
+		expect(memory?.pairMarks[key]).toEqual({firstInZoneAt: 16, overlappedAtEntry: true, insideAtEntry: "a"});
+		expect(memory?.markSlots["a|m"]).toEqual({zoneEntryAt: 16});
+	});
+
+	it("records the boat clear ahead when the boats are not overlapped at entry", () => {
+		const {memory} = run([markWorld(far("a", 14.5, 15.5), far("b", 20, 20)), markWorld(far("a", 11.5, 12.5), far("b", 20, 20))]);
+		expect(memory?.pairMarks[key]).toMatchObject({overlappedAtEntry: false, clearAheadAtEntry: "a"});
+		expect(memory?.pairMarks[key].insideAtEntry).toBeUndefined();
+	});
+
+	it("does not record a slot while neither boat is in the zone, nor for a boat not heading for the mark", () => {
+		expect(run([apart, apart]).memory?.pairMarks).toEqual({});
+		const elsewhere = markWorld(far("a", 11.5, 12.5), {...far("b", 13, 11), nextLegIndex: 1});
+		expect(run([elsewhere]).memory?.pairMarks).toEqual({});
+	});
+
+	it("keeps the latch when the overlap is later broken, and exposes it in history only while live", () => {
+		const broken = markWorld(far("a", 11.5, 12.5), far("b", 16, 17));
+		const {memory} = run([apart, together, broken, broken]);
+		expect(memory?.pairMarks[key]).toMatchObject({overlappedAtEntry: true, insideAtEntry: "a"});
+		expect(memory?.pairMarks[key].released).toBeUndefined();
+	});
+
+	it("releases when the entitled boat leaves the zone, and does not latch again until both have left", () => {
+		const aOut = markWorld(far("a", 18, 18), far("b", 13, 11)); // a leaves, b still in the zone
+		const {memory} = run([apart, together, aOut, together]);
+		expect(memory?.pairMarks[key].released).toBe(true);
+		expect(memory?.pairMarks[key].insideAtEntry).toBe("a");
+
+		const bothOut = run([apart], memory);
+		expect(bothOut.memory?.pairMarks).toEqual({});
+		const reentry = run([together], bothOut.memory);
+		expect(reentry.memory?.pairMarks[key].released).toBeUndefined();
+	});
+
+	it("releases when the entitled boat passes head to wind", () => {
+		// `a` turns from starboard-tack close-hauled through the wind onto port tack (heading 20).
+		const frames = [315, 350, 2, 20].map((heading) => markWorld({...far("a", 11.5, 12.5), heading}, far("b", 13, 11)));
+		const {memory} = run([apart, ...frames]);
+		expect(memory?.pairMarks[key].released).toBe(true);
+	});
+});

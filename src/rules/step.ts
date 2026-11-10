@@ -11,6 +11,7 @@ import type {WorldState} from "../model/world";
 import {CLOSE_HAULED_ANGLE, TWO_HULL_LENGTHS, computeFacts, getWindAngle, isClearAstern} from "./factsEngine";
 import type {Tack, WorldFacts} from "./factsEngine";
 import {evaluate} from "./evaluate";
+import {nextMarkMemory} from "./markMemory";
 import {createEmptyMemory} from "./memory";
 import type {BoatMemory, EngineMemory, PairMemory} from "./memory";
 import type {EngineHistory, RuleEvaluation} from "./types";
@@ -70,11 +71,17 @@ export function step(world: WorldState, memory: EngineMemory | null, nowMs: numb
 		history.leewardFromAstern![key] = pair.leewardFromAstern;
 	}
 
+	for (const [key, mark] of Object.entries(prev.pairMarks)) {
+		if (!mark.released) (history.markEntry ??= {})[key] = mark;
+	}
+
 	// (d) Evaluate.
 	const evaluation = evaluate(world, facts, history);
 
 	// (e) Next memory.
-	return {evaluation, memory: {boats: boatMemory, pairs: nextPairMemory(world, facts, evaluation, prev), markSlots: prev.markSlots}};
+	const startedTacking = new Set(world.boats.filter((boat) => facts.boats[boat.id].tacking && !prev.boats[boat.id]?.tacking).map((boat) => boat.id));
+	const markMemory = nextMarkMemory(world, facts, prev, nowMs, startedTacking);
+	return {evaluation, memory: {boats: boatMemory, pairs: nextPairMemory(world, facts, evaluation, prev), ...markMemory}};
 }
 
 /**

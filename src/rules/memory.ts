@@ -32,12 +32,32 @@ export interface PairMemory {
 	prevClearAstern: Record<string, boolean>;
 }
 
-/** What the engine remembers about one boat's approach to one mark. Populated from Phase 6. */
+/** What the engine remembers about one boat's approach to one mark. */
 export interface MarkSlotMemory {
-	/** Timestamp (ms) at which the boat entered the mark's zone. */
+	/** Timestamp (ms) at which the boat entered the mark's zone; kept while she stays in it. */
 	zoneEntryAt?: number;
-	/** Boat id → whether that boat was overlapped with this one when she entered the zone. */
-	overlappedAtZoneEntry?: Record<string, boolean>;
+}
+
+/**
+ * What the engine remembers about one pair of boats at one mark: the state of
+ * the pair when the FIRST of them reached the zone (Rule 18.2(b)). Created only
+ * for pairs that both have the mark as their next mark.
+ */
+export interface PairMarkMemory {
+	/** Timestamp (ms) at which the first of the two boats reached the zone. */
+	firstInZoneAt: number;
+	/** Whether the boats were overlapped at that moment. */
+	overlappedAtEntry: boolean;
+	/** When overlapped at entry: the inside boat (see `insideBoatId`); absent when neither was inside. */
+	insideAtEntry?: string;
+	/** When not overlapped at entry: the boat that was clear ahead. */
+	clearAheadAtEntry?: string;
+	/**
+	 * True once the boat entitled to mark-room has passed head to wind or left
+	 * the zone (Rule 18.2(d)). The slot is kept, so the latch is not simply taken
+	 * again next frame, until both boats have left the zone.
+	 */
+	released?: boolean;
 }
 
 /** Everything the engine carries between frames. */
@@ -46,8 +66,10 @@ export interface EngineMemory {
 	boats: Record<string, BoatMemory>;
 	/** Keyed by `pairKey`. */
 	pairs: Record<string, PairMemory>;
-	/** Keyed by `markSlotKey(boatId, markId)`. Empty until mark rules exist. */
+	/** Keyed by `markSlotKey(boatId, markId)`. */
 	markSlots: Record<string, MarkSlotMemory>;
+	/** Keyed by `pairMarkKey(pairKey, markId)`. */
+	pairMarks: Record<string, PairMarkMemory>;
 }
 
 /** Key of a boat×mark slot in `EngineMemory.markSlots`. */
@@ -55,7 +77,12 @@ export function markSlotKey(boatId: string, markId: string): string {
 	return `${boatId}|${markId}`;
 }
 
+/** Key of a pair×mark slot in `EngineMemory.pairMarks`: `pairKey|markId`. */
+export function pairMarkKey(pairKey: string, markId: string): string {
+	return `${pairKey}|${markId}`;
+}
+
 /** Memory of an engine that has not seen any frame yet. */
 export function createEmptyMemory(): EngineMemory {
-	return {boats: {}, pairs: {}, markSlots: {}};
+	return {boats: {}, pairs: {}, markSlots: {}, pairMarks: {}};
 }

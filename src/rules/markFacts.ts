@@ -108,3 +108,32 @@ export function computeProperCourse(boat: BoatState, world: WorldState, tack: Ta
 	const bearing = bearingTo(boat, mark);
 	return getWindAngle(bearing, world.wind.direction) < CLOSE_HAULED_ANGLE ? closeHauled : bearing;
 }
+
+/**
+ * The inside boat of a pair at a mark: the one closer to the mark measured
+ * laterally, i.e. perpendicular to the boats' mean heading. Null when they are
+ * equally close (within 1e-6 hull lengths). Used everywhere "inside" is needed
+ * so every Rule 18 clause agrees.
+ *
+ * APPROXIMATION: the RRS "inside" is about the side of the boats' course the
+ * mark is on, not a distance; this is a lateral-distance proxy for it.
+ */
+export function insideBoatId(a: BoatState, b: BoatState, mark: Mark): string | null {
+	const ua = headingVector(a.heading);
+	const ub = headingVector(b.heading);
+	let mx = ua.x + ub.x;
+	let my = ua.y + ub.y;
+	if (Math.hypot(mx, my) < 1e-6) {
+		mx = ua.x;
+		my = ua.y;
+	}
+	const norm = Math.hypot(mx, my);
+	// Unit vector perpendicular to the mean heading.
+	const px = -my / norm;
+	const py = mx / norm;
+	const lateral = (boat: BoatState) => Math.abs((mark.x - boat.x) * px + (mark.y - boat.y) * py);
+	const da = lateral(a);
+	const db = lateral(b);
+	if (Math.abs(da - db) < 1e-6) return null;
+	return da < db ? a.id : b.id;
+}
