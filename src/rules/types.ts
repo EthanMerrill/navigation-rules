@@ -137,7 +137,7 @@ export interface PairView {
 	/** Why the deciding rule applies; empty when nobody has to keep clear. */
 	reason: string;
 	sameTack: boolean;
-	/** Overlap status; null when on opposite tacks. */
+	/** Overlap status for rules 11 and 12 (see `MeetingFacts.overlapped`); null when the terms do not apply (opposite tacks, not both running). */
 	overlapped: boolean | null;
 	/** True when the boats' hulls overlap — a collision (Rule 14). */
 	collided: boolean;

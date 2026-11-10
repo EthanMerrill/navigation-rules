@@ -4,7 +4,6 @@
  */
 
 import type {BoatState, Mark} from "../../model/world";
-import {isOverlapped} from "../factsEngine";
 import type {BoatMarkFacts} from "../markFacts";
 import {entitledBoat} from "../markMemory";
 import {markSlotKey, pairMarkKey} from "../memory";
@@ -65,7 +64,7 @@ export function entryLatch(ctx: PairEvalContext, mark: Mark): EntryLatch | null 
 	const entitledId = latch ? entitledBoat(latch) : null;
 	if (!latch || entitledId === null) return null;
 	const entitled = entitledId === ctx.pair.a.id ? ctx.pair.a : ctx.pair.b;
-	return {latch, entitled, giver: otherOf(ctx.pair, entitled.id), changed: isOverlapped(ctx.pair.a, ctx.pair.b) !== latch.overlappedAtEntry};
+	return {latch, entitled, giver: otherOf(ctx.pair, entitled.id), changed: ctx.pair.facts.overlappedGeometric !== latch.overlappedAtEntry};
 }
 
 /** A `giveMarkRoom` obligation from `giver` to `entitled`. */

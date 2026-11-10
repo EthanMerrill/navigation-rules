@@ -51,8 +51,19 @@ export type {BoatState, WindState};
 /** Shared geometric facts about a two-boat meeting, used by rule predicates. */
 export interface MeetingFacts {
 	sameTack: boolean;
-	/** Overlap status; null when on opposite tacks. */
+	/**
+	 * Overlap status as the RRS definition applies it to rules 11 and 12: the
+	 * geometric overlap when the boats are on the same tack, or when both are
+	 * sailing more than 90 degrees from the true wind; null otherwise (opposite
+	 * tacks, where the terms apply only when rule 18 applies between them, which
+	 * is why Rule 18 reads `overlappedGeometric` instead).
+	 */
 	overlapped: boolean | null;
+	/**
+	 * Whether the boats overlap on the geometry alone, on any tacks: neither is
+	 * clear astern, or a third boat between them overlaps both. Always computed.
+	 */
+	overlappedGeometric: boolean;
 	/** Which boat (a or b) is windward; null unless same tack + overlapped. */
 	windwardIsA: boolean | null;
 	/** Which boat (a or b) is clear ahead; null unless same tack + not overlapped. */
@@ -675,22 +686,77 @@ function computeBoatFacts(boat: BoatState, world: WorldState, prevTack?: Tack | 
 	};
 }
 
-/** Facts about the meeting of boats `a` and `b`, given their (resolved) tacks. */
+/**
+ * Signed position of `point` across the mean heading of `a` and `b` (positive
+ * towards starboard). Falls back to `a`'s heading when the two cancel out.
+ */
+export function lateralAcrossMeanHeading(a: BoatState, b: BoatState, point: Point): number {
+	const ua = headingVector(a.heading);
+	const ub = headingVector(b.heading);
+	let mx = ua.x + ub.x;
+	let my = ua.y + ub.y;
+	if (Math.hypot(mx, my) < 1e-6) {
+		mx = ua.x;
+		my = ua.y;
+	}
+	const norm = Math.hypot(mx, my);
+	// Starboard is the mean heading rotated 90° clockwise (y axis points down).
+	return (point.x * -my + point.y * mx) / norm;
+}
+
+/** Whether the overlap terms apply to the pair at all without rule 18: same tack, or both more than 90° from the wind. */
+function overlapTermsApply(a: BoatState, b: BoatState, sameTack: boolean, wind: WindState): boolean {
+	return sameTack || (getWindAngle(a.heading, wind.direction) > 90 && getWindAngle(b.heading, wind.direction) > 90);
+}
+
+/** Facts about the meeting of boats `a` and `b`, given their (resolved) tacks. `overlappedGeometric` is the pairwise value; `computeFacts` adds the transitive clause. */
 function computePairFacts(a: BoatState, b: BoatState, aTack: Tack | null, bTack: Tack | null, wind: WindState): PairFacts {
 	const sameTack = areOnSameTack(aTack, bTack);
-	const overlapped = sameTack ? isOverlapped(a, b) : null;
-	const separation = boatPerimeterDistance(a, b);
+	const overlappedGeometric = isOverlapped(a, b);
+	const overlapped = overlapTermsApply(a, b, sameTack, wind) ? overlappedGeometric : null;
+	return withOverlap({a: a.id, b: b.id, sameTack, overlapped, overlappedGeometric, windwardIsA: null, clearAheadIsA: null, separation: boatPerimeterDistance(a, b), collided: false}, a, b, wind);
+}
 
+/**
+ * Fill in the facts that follow from the overlap status (windward / clear
+ * ahead, collision); called again by `computeFacts` once the transitive clause
+ * has changed `overlappedGeometric`.
+ */
+function withOverlap(pair: PairFacts, a: BoatState, b: BoatState, wind: WindState): PairFacts {
+	const {sameTack, overlapped, separation} = pair;
 	return {
-		a: a.id,
-		b: b.id,
-		sameTack,
-		overlapped,
+		...pair,
 		windwardIsA: sameTack && overlapped ? getWindwardBoat(a, b, wind) === "a" : null,
 		clearAheadIsA: sameTack && !overlapped ? isClearAstern(b, a) : null,
-		separation,
 		collided: separation < 0,
 	};
+}
+
+/**
+ * The transitive clause of the overlap definition: two boats also overlap when
+ * a boat between them overlaps both. "Between" is the third boat's position
+ * across the mean heading of the two lying between theirs. One pass over the
+ * pairwise geometric overlaps, so a chain of three or more boats does not
+ * cascade. Rewrites `pairs` in place.
+ */
+function applyTransitiveOverlap(world: WorldState, pairs: Record<string, PairFacts>): void {
+	const raw = new Set(Object.entries(pairs).filter(([, p]) => p.overlappedGeometric).map(([key]) => key));
+	const pairwise = (x: BoatState, y: BoatState) => raw.has(pairKey(x.id, y.id));
+	for (const pair of Object.values(pairs)) {
+		if (pair.overlappedGeometric) continue;
+		const a = world.boats.find((boat) => boat.id === pair.a) as BoatState;
+		const b = world.boats.find((boat) => boat.id === pair.b) as BoatState;
+		const [lo, hi] = [lateralAcrossMeanHeading(a, b, a), lateralAcrossMeanHeading(a, b, b)].sort((x, y) => x - y);
+		const between = world.boats.some((c) => {
+			if (c.id === a.id || c.id === b.id || !pairwise(c, a) || !pairwise(c, b)) return false;
+			const lateral = lateralAcrossMeanHeading(a, b, c);
+			return lateral > lo && lateral < hi;
+		});
+		if (!between) continue;
+		const sameTack = pair.sameTack;
+		const overlapped = overlapTermsApply(a, b, sameTack, world.wind) ? true : null;
+		pairs[pairKey(a.id, b.id)] = withOverlap({...pair, overlappedGeometric: true, overlapped}, a, b, world.wind);
+	}
 }
 
 /**
@@ -715,6 +781,7 @@ export function computeFacts(world: WorldState, prevTacks?: Record<string, Tack 
 			pairs[pairKey(a.id, b.id)] = computePairFacts(a, b, boats[a.id].tack, boats[b.id].tack, world.wind);
 		}
 	}
+	applyTransitiveOverlap(world, pairs);
 
 	return {boats, pairs, marks: computeMarkFacts(world), obstructions: computeObstructionFacts(world)};
 }

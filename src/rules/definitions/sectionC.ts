@@ -15,7 +15,7 @@
  */
 
 import type {Mark} from "../../model/world";
-import {getWindAngle, isOverlapped} from "../factsEngine";
+import {getWindAngle} from "../factsEngine";
 import {insideBoatId} from "../markFacts";
 import type {Obligation, PairEvalContext, RuleDefinition} from "../types";
 import {onPair, otherOf} from "./helpers";
@@ -65,7 +65,7 @@ export const SECTION_C_RULES: RuleDefinition[] = [
 		evaluate: onPair((ctx) =>
 			perMark(ctx, (mark) => {
 				const {a, b} = ctx.pair;
-				if (!isOverlapped(a, b)) return [];
+				if (!ctx.pair.facts.overlappedGeometric) return [];
 				const insideId = insideBoatId(a, b, mark);
 				if (insideId === null) return [];
 				const inside = insideId === a.id ? a : b;
@@ -100,7 +100,7 @@ export const SECTION_C_RULES: RuleDefinition[] = [
 						kind: "notCauseAboveCloseHauled",
 						detail: `Rule 18.3 — ${tacker.id} tacked from port to starboard in the zone of ${mark.id} and is fetching it; she must not cause ${other.id}, who has stayed on starboard tack, to sail above close-hauled to avoid contact.`,
 					});
-					if (isOverlapped(ctx.pair.a, ctx.pair.b) && insideBoatId(ctx.pair.a, ctx.pair.b, mark) === other.id) {
+					if (ctx.pair.facts.overlappedGeometric && insideBoatId(ctx.pair.a, ctx.pair.b, mark) === other.id) {
 						out.push(giveMarkRoom("18.3", tacker, other, `Rule 18.3 — ${other.id} is overlapped inside ${tacker.id} at ${mark.id}, so ${tacker.id} gives her mark-room.`));
 					}
 				}
@@ -117,7 +117,7 @@ export const SECTION_C_RULES: RuleDefinition[] = [
 		evaluate: onPair((ctx) =>
 			perMark(ctx, (mark) => {
 				const {a, b} = ctx.pair;
-				if (mark.kind === "gate" || ctx.rightOfWay == null || !isOverlapped(a, b)) return [];
+				if (mark.kind === "gate" || ctx.rightOfWay == null || !ctx.pair.facts.overlappedGeometric) return [];
 				const insideId = insideBoatId(a, b, mark);
 				if (insideId === null || insideId !== ctx.rightOfWay) return [];
 				const inside = insideId === a.id ? a : b;

@@ -874,3 +874,45 @@ describe("worldReducer", () => {
 		expect(worldReducer(world, {type: "loadScenario", world: scenario})).toBe(scenario);
 	});
 });
+
+describe("overlap per the RRS definition", () => {
+	/** A boat in world units; wind from the north, so heading 90 is port tack on a beam reach. */
+	const at = (id: string, x: number, y: number, heading: number): BoatState => ({id, x, y, heading, nextLegIndex: 0});
+
+	it("overlaps through a boat between them that overlaps both (transitive clause)", () => {
+		// All heading east: `a` is clear astern of `b`, but `c` lies between them laterally and overlaps each.
+		const a = at("a", 0, 0, 90);
+		const c = at("c", 0.3, 0.5, 90);
+		const b = at("b", 0.65, 1, 90);
+		expect(isOverlapped(a, b)).toBe(false);
+		const {pairs} = computeFacts({...createDefaultWorld(), boats: [a, c, b]});
+		const ab = pairs[pairKey("a", "b")];
+		expect(ab.overlappedGeometric).toBe(true);
+		expect(ab.overlapped).toBe(true);
+		expect(ab.clearAheadIsA).toBeNull();
+		expect(ab.windwardIsA).toBe(true); // a is north of b
+	});
+
+	it("does not overlap through a third boat that is not between them", () => {
+		const a = at("a", 0, 0, 90);
+		const c = at("c", 0.3, -0.5, 90); // on the far side of a
+		const b = at("b", 0.65, 1, 90);
+		const {pairs} = computeFacts({...createDefaultWorld(), boats: [a, c, b]});
+		expect(pairs[pairKey("a", "b")].overlappedGeometric).toBe(false);
+		expect(pairs[pairKey("a", "b")].overlapped).toBe(false);
+	});
+
+	it("applies overlap to opposite tacks only when both boats sail more than 90 degrees from the wind", () => {
+		// Running: 135 is port tack, 225 starboard tack; both more than 90 degrees from a north wind.
+		const running = computeFacts({...createDefaultWorld(), boats: [at("a", 0, 0, 135), at("b", -0.2, 0.2, 225)]}).pairs["a|b"];
+		expect(running.sameTack).toBe(false);
+		expect(running.overlappedGeometric).toBe(true);
+		expect(running.overlapped).toBe(true);
+		expect(running.windwardIsA).toBeNull(); // rule 11 stays a same-tack rule
+
+		// Close-hauled on opposite tacks: geometrically overlapped, but the term does not apply.
+		const beating = computeFacts({...createDefaultWorld(), boats: [at("a", 0, 0, 45), at("b", 0, 0.2, 315)]}).pairs["a|b"];
+		expect(beating.overlappedGeometric).toBe(true);
+		expect(beating.overlapped).toBeNull();
+	});
+});

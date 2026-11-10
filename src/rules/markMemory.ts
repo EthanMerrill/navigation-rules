@@ -4,7 +4,7 @@
  */
 
 import type {BoatState, WorldState} from "../model/world";
-import {isClearAstern, isOverlapped} from "./factsEngine";
+import {isClearAstern} from "./factsEngine";
 import type {WorldFacts} from "./factsEngine";
 import {insideBoatId} from "./markFacts";
 import {markSlotKey, pairMarkKey} from "./memory";
@@ -48,7 +48,7 @@ export function nextMarkMemory(world: WorldState, facts: WorldFacts, prev: Engin
 
 			if (!before) {
 				if (!fa.inZone && !fb.inZone) continue;
-				const overlapped = isOverlapped(a, b);
+				const overlapped = pair.overlappedGeometric;
 				const inside = overlapped ? insideBoatId(a, b, mark) : null;
 				pairMarks[key] = {
 					firstInZoneAt: nowMs,
