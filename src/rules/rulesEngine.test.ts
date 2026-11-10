@@ -3,7 +3,7 @@ import type {EngineHistory, PairView, RuleDefinition, RuleEvaluation, RuleState}
 import {CONTACT_RISK_DISTANCE, isShownApplicable} from "../ui/ruleDisplay";
 import {PX_PER_HULL_LENGTH, toWorld} from "../view/scale";
 import {worldReducer, createDefaultWorld} from "../state/worldReducer";
-import {TWO_HULL_LENGTHS, HULL_ACTUAL_LENGTH, HULL_FOREMOST_OFFSET, HULL_AFTERMOST_OFFSET, computeFacts, computeMeetingFacts, pairKey, areOnSameTack, boatPerimeterDistance, compareRuleIds, contentOf, evaluate, RULE_CONTENT, RULE_REGISTRY, getAheadBoat, getHullVertices, getPointOfSail, getSailTrimAngle, getTack, getTransomLine, getWindAngle, getWindwardBoat, inferProperCourse, isClearAstern, isOverlapped, isSailingAboveProperCourse, isSailingBelowProperCourse} from "./rulesEngine";
+import {TWO_HULL_LENGTHS, HULL_ACTUAL_LENGTH, HULL_FOREMOST_OFFSET, HULL_AFTERMOST_OFFSET, computeFacts, computeMeetingFacts, pairKey, areOnSameTack, boatPerimeterDistance, compareRuleIds, contentOf, evaluate, RULE_CONTENT, RULE_REGISTRY, getAheadBoat, getHullVertices, getPointOfSail, getSailTrimAngle, getTack, getTransomLine, getWindAngle, getWindwardBoat, inferProperCourse, isClearAstern, isOverlapped, isSailingAboveProperCourse} from "./rulesEngine";
 
 // All tests use wind blowing FROM the north (0°), i.e. down the screen.
 const WIND_NORTH: WindState = {direction: 0};
@@ -309,25 +309,17 @@ describe("hull-derived rule distances", () => {
 		const windward = boat("windward", 300, 150, 90);
 		const leeward = boat("leeward", 300, 560, 90);
 		const result = evalPair(windward, leeward);
-		expect(isApplicable(result, "17.1")).toBe(false);
-		expect(isApplicable(result, "17.2")).toBe(false);
+		expect(isApplicable(result, "17")).toBe(false);
 		expect(pairOf(result, windward, leeward).decidingRuleId).toBe("11"); // right-of-way decision unchanged
 	});
 });
 
-describe("isSailingAboveProperCourse / isSailingBelowProperCourse", () => {
+describe("isSailingAboveProperCourse", () => {
 	it("detects sailing above proper course (more upwind)", () => {
 		// Proper course is a beam reach (90°); heading 45° points more upwind.
 		expect(isSailingAboveProperCourse(45, 90, 0)).toBe(true);
 		expect(isSailingAboveProperCourse(90, 90, 0)).toBe(false);
 		expect(isSailingAboveProperCourse(135, 90, 0)).toBe(false);
-	});
-
-	it("detects sailing below proper course (more downwind)", () => {
-		// Proper course is a beam reach (90°); heading 135° points more downwind.
-		expect(isSailingBelowProperCourse(135, 90, 0)).toBe(true);
-		expect(isSailingBelowProperCourse(90, 90, 0)).toBe(false);
-		expect(isSailingBelowProperCourse(45, 90, 0)).toBe(false);
 	});
 });
 
@@ -383,26 +375,25 @@ describe("evaluate", () => {
 		const b = boat("b", 300, 350, 90);
 		const result = evalPair(a, b); // Rule 11 decides
 
-		// 11 decides; 14 (hulls ~122px apart, within risk distance) and 17.2 (the
-		// windward boat is on a beam reach, below her inferred close-hauled proper
-		// course) co-apply; the rest are not applicable, sorted ascending.
-		expect(result.rules.map((r) => r.id)).toEqual(["11", "14", "17.2", "10", "12", "13", "15", "16", "17.1", "18.2a", "18.2b", "18.2c", "18.3", "18.4", "19.2b", "19.2c", "20.2", "21"]);
+		// 11 decides; 14 (hulls ~122px apart, within risk distance) co-applies;
+		// the rest are not applicable, sorted ascending.
+		expect(result.rules.map((r) => r.id)).toEqual(["11", "14", "10", "12", "13", "15", "16", "17", "18.2a", "18.2b", "18.2c", "18.3", "18.4", "19.2b", "19.2c", "20.2", "21"]);
 		expect(result.rules[0].deciding).toBe(true);
 		expect(result.rules[0].applicable).toBe(true);
 		// Only one rule should ever be deciding.
 		expect(result.rules.filter((r) => r.deciding).length).toBe(1);
-		// Rule 11 (deciding), Rule 14 (close) and Rule 17.2 (below proper course).
-		expect(result.rules.filter((r) => r.applicable).length).toBe(3);
+		// Rule 11 (deciding) and Rule 14 (close).
+		expect(result.rules.filter((r) => r.applicable).length).toBe(2);
 	});
 
 	it("sorts rule ids numerically, then by sub-number", () => {
-		const ids = ["18", "17.2", "10", "17.1", "9", "18.2b", "17"];
-		expect([...ids].sort(compareRuleIds)).toEqual(["9", "10", "17", "17.1", "17.2", "18", "18.2b"]);
+		const ids = ["18", "16.2", "10", "17", "9", "18.2b", "16.1"];
+		expect([...ids].sort(compareRuleIds)).toEqual(["9", "10", "16.1", "16.2", "17", "18", "18.2b"]);
 	});
 
-	it("orders 17.1 < 17.2 < 18 < 18.2a < 18.2b < 19", () => {
-		const ids = ["19", "18.2b", "17.2", "18", "18.2a", "17.1"];
-		expect([...ids].sort(compareRuleIds)).toEqual(["17.1", "17.2", "18", "18.2a", "18.2b", "19"]);
+	it("orders 17 < 18 < 18.2a < 18.2b < 19", () => {
+		const ids = ["19", "18.2b", "18", "18.2a", "17"];
+		expect([...ids].sort(compareRuleIds)).toEqual(["17", "18", "18.2a", "18.2b", "19"]);
 	});
 });
 
@@ -682,7 +673,7 @@ describe("evaluate — Rule 16 (Changing Course)", () => {
 });
 
 describe("evaluate — Rule 17 (On the Same Tack; Proper Course)", () => {
-	it("17.1 applies when a leeward boat that came from astern sails above her proper course", () => {
+	it("17 applies when a leeward boat that came from astern sails above her proper course", () => {
 		// a is windward (north), b is leeward and abeam to the south-east of a;
 		// both on port tack, so they are overlapped. Proper course is inferred as
 		// close-hauled on port tack (45°); b is pinching up to 30°, i.e. above
@@ -691,35 +682,32 @@ describe("evaluate — Rule 17 (On the Same Tack; Proper Course)", () => {
 		const b = boat("b", 441, 291, 30);
 		const result = evalPair(a, b, WIND_NORTH, {leewardFromAstern: {[pairKey("a", "b")]: {b: true}}});
 
-		const rule171 = result.rules.find((r) => r.id === "17.1");
-		expect(rule171?.applicable).toBe(true);
-		expect(rule171?.deciding).toBe(false);
-		expect(rule171?.detail).toContain("17.1");
-		expect(duties(result, "b")).toMatchObject([{ruleId: "17.1", kind: "notAboveProperCourse", towards: "a"}]);
+		const rule17 = result.rules.find((r) => r.id === "17");
+		expect(rule17?.applicable).toBe(true);
+		expect(rule17?.deciding).toBe(false);
+		expect(rule17?.detail).toContain("17");
+		expect(duties(result, "b")).toMatchObject([{ruleId: "17", kind: "notAboveProperCourse", towards: "a"}]);
 		expect(pairOf(result, a, b).decidingRuleId).toBe("11"); // right-of-way decision unchanged
 	});
 
-	it("17.1 does not apply without the clear-astern-to-leeward transition", () => {
+	it("17 does not apply without the clear-astern-to-leeward transition", () => {
 		// Same geometry, but b has not (latch absent) established the overlap from astern.
 		const a = boat("a", 300, 150, 45);
 		const b = boat("b", 300, 350, 30);
 		const result = evalPair(a, b); // no latch
 
-		expect(isApplicable(result, "17.1")).toBe(false);
+		expect(isApplicable(result, "17")).toBe(false);
 	});
 
-	it("17.2 applies when a windward boat sails below her proper course (not on a beat)", () => {
-		// a is windward (north) and is on a broad reach (135°), below her inferred
-		// close-hauled proper course (45°).
-		const a = boat("a", 300, 150, 135);
-		const b = boat("b", 300, 350, 90);
-		const result = evalPair(a, b);
-
-		const rule172 = result.rules.find((r) => r.id === "17.2");
-		expect(rule172?.applicable).toBe(true);
-		expect(rule172?.detail).toContain("17.2");
-		expect(result.boats.a.obligations.some((o) => o.kind === "notBelowProperCourse")).toBe(true);
-		expect(pairOf(result, a, b).decidingRuleId).toBe("11"); // right-of-way decision unchanged
+	it("does not apply before the starting signal (no proper course), nor is there a 17.2", () => {
+		const a = boat("a", 300, 150, 45);
+		const b = boat("b", 441, 291, 30);
+		const history = {leewardFromAstern: {[pairKey("a", "b")]: {b: true}}};
+		const world = {...worldOf([a, b]), race: {phase: "prestart" as const}};
+		const prestart = evaluate(world, computeFacts(world), history);
+		expect(prestart.rules.find((r) => r.id === "17")?.applicable).toBe(false);
+		expect(isApplicable(evalPair(a, b, WIND_NORTH, history), "17")).toBe(true);
+		expect(RULE_REGISTRY.some((r) => r.id === "17.1" || r.id === "17.2")).toBe(false);
 	});
 
 	it("does not apply when the boats are more than two hull lengths apart", () => {
@@ -729,8 +717,7 @@ describe("evaluate — Rule 17 (On the Same Tack; Proper Course)", () => {
 		const b = boat("b", 300, 700, 30);
 		const result = evalPair(a, b, WIND_NORTH, {leewardFromAstern: {[pairKey("a", "b")]: {b: true}}});
 
-		expect(isApplicable(result, "17.1")).toBe(false);
-		expect(isApplicable(result, "17.2")).toBe(false);
+		expect(isApplicable(result, "17")).toBe(false);
 	});
 });
 

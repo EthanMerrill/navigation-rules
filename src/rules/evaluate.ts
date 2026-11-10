@@ -25,7 +25,7 @@ interface FiredRule {
 
 /**
  * Order rule ids numerically by leading number, then sub-number, then suffix,
- * so "17" < "17.1" < "17.2" < "18" < "18.2b".
+ * so "16" < "16.1" < "17" < "18" < "18.2b".
  */
 export function compareRuleIds(x: RuleId, y: RuleId): number {
 	const parse = (id: RuleId) => {

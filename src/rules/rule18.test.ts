@@ -182,6 +182,11 @@ describe("Rule 18.4 — gybing", () => {
 		expect(e.obligations.filter((o) => o.kind === "sailNoFartherFromMark").map((o) => [o.ruleId, o.boat])).toEqual([["18.4", "east"]]);
 	});
 
+	it("does not apply before the starting signal (no proper course)", () => {
+		const prestart = {...worldOf([east, west], [leewardMark]), race: {phase: "prestart" as const}};
+		expect(fired(last(run([prestart]).evaluations), "18.4")).toBe(false);
+	});
+
 	it("does not apply at a gate mark, nor when no gybe is needed", () => {
 		expect(fired(last(run([worldOf([east, west], [{...leewardMark, kind: "gate"}])]).evaluations), "18.4")).toBe(false);
 		// Port tack (heading 165): leaving the mark to port needs no gybe.

@@ -8,7 +8,7 @@
  * - 18.2(c): as 18.2(b), once the overlap has changed since zone entry; suspends 18.2(a).
  * - 18.3: a limitation on a boat that tacked in the zone: she must not force a starboard-tack boat above close-hauled and
  *   gives her mark-room if she becomes overlapped inside. It suspends nothing: Rules 10-12 still decide right of way.
- * - 18.4: gybing at a mark; limits the inside right-of-way boat.
+ * - 18.4: gybing at a mark; limits the inside right-of-way boat. Not applicable before the starting signal (no proper course).
  *
  * 18.1 (applicability) is `rule18Applies` in `markRoom.ts`; 18.2(d) (release of the
  * entry latch) is applied in `markMemory.ts`. Both are reference-only content entries.
@@ -117,6 +117,7 @@ export const SECTION_C_RULES: RuleDefinition[] = [
 		evaluate: onPair((ctx) =>
 			perMark(ctx, (mark) => {
 				const {a, b} = ctx.pair;
+				if (ctx.world.race.phase === "prestart") return []; // no proper course before the starting signal
 				if (mark.kind === "gate" || ctx.rightOfWay == null || !ctx.pair.facts.overlappedGeometric) return [];
 				const insideId = insideBoatId(a, b, mark);
 				if (insideId === null || insideId !== ctx.rightOfWay) return [];

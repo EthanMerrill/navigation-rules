@@ -100,7 +100,7 @@ export function step(world: WorldState, memory: EngineMemory | null, nowMs: numb
 }
 
 /**
- * Fold one evaluated frame into the per-pair memory. Rule 17.1: a boat latches
+ * Fold one evaluated frame into the per-pair memory. Rule 17: a boat latches
  * when she was clear astern last frame and is now overlapped to leeward within
  * two hull lengths; the latch holds until the boats are no longer overlapped
  * within that distance (or no longer on the same tack).

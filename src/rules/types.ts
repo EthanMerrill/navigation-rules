@@ -9,11 +9,11 @@ import type {RuleContent} from "./content/rrs-2025";
 import type {ObstructionOverlapMemory, PairMarkMemory} from "./memory";
 import type {PairFacts, PointOfSail, Tack, WorldFacts} from "./factsEngine";
 
-/** Rule identifier as printed in the RRS: "10", "17.1", later "18.2b". */
+/** Rule identifier as printed in the RRS: "10", "17", "18.2b". */
 export type RuleId = string;
 
 /** What a rule requires of a boat. */
-export type ObligationKind = "keepClear" | "giveRoom" | "giveMarkRoom" | "avoidContact" | "notAboveProperCourse" | "notBelowProperCourse" | "sailNoFartherFromMark" | "notCauseAboveCloseHauled" | "tackAsSoonAsPossible";
+export type ObligationKind = "keepClear" | "giveRoom" | "giveMarkRoom" | "avoidContact" | "notAboveProperCourse" | "sailNoFartherFromMark" | "notCauseAboveCloseHauled" | "tackAsSoonAsPossible";
 
 /** A single duty imposed on `boat` (optionally owed `towards` another boat) by a rule. */
 export interface Obligation {
@@ -34,7 +34,7 @@ export interface Obligation {
 }
 
 /**
- * History the evaluator needs for the time-dependent rules (13, 15, 16, 17.1).
+ * History the evaluator needs for the time-dependent rules (13, 15, 16, 17).
  * Everything is keyed by boat id or pair key; all fields are optional so a
  * stateless evaluation can pass `{}`. `step` builds it from engine memory (`memory.ts`).
  */
@@ -43,7 +43,7 @@ export interface EngineHistory {
 	prevRightOfWay?: Record<string, string | null | undefined>;
 	/** Boat id → true while the boat is changing course (Rule 16). */
 	changingCourse?: Record<string, boolean>;
-	/** Pair key → boat id → true when that boat established a leeward overlap from clear astern (Rule 17.1). */
+	/** Pair key → boat id → true when that boat established a leeward overlap from clear astern (Rule 17). */
 	leewardFromAstern?: Record<string, Record<string, boolean>>;
 	/**
 	 * `pairMarkKey` (`pairKey|markId`) → the state of the pair when the first of

@@ -7,16 +7,18 @@
  *   (How close is "close" for display purposes is UI config, see `ui/ruleDisplay.ts`.)
  * - Rule 15 (Acquiring Right of Way): the new right-of-way boat gives room.
  * - Rule 16 (Changing Course): a right-of-way boat that turns gives room.
- * - Rule 17.1 / 17.2 (Proper Course): limits on a leeward boat that came from
- *   astern and on a windward boat sailing below her proper course.
+ * - Rule 17 (On the Same Tack; Proper Course): a leeward boat that came from astern
+ *   does not sail above her proper course. The 2025–2028 edition deleted the old 17.2.
+ *   Not applicable before the starting signal (a boat has no proper course then).
+ *   NOT MODELLED: the exception "unless in doing so she promptly sails astern of the other boat".
  */
 
 import type {BoatState} from "../../model/world";
-import {TWO_HULL_LENGTHS, getPointOfSail, isSailingAboveProperCourse, isSailingBelowProperCourse} from "../factsEngine";
+import {TWO_HULL_LENGTHS, isSailingAboveProperCourse} from "../factsEngine";
 import type {PairContext, RuleDefinition} from "../types";
 import {onPair, otherOf} from "./helpers";
 
-/** Shared geometry for Rule 17: the windward/leeward boats if 17 could apply to this pair. */
+/** Shared geometry for Rule 17: the windward/leeward boats if 17 could apply to this pair (same tack, overlapped, within two hull lengths). */
 function sameTackOverlapWithinTwoLengths(pair: PairContext): {windward: BoatState; leeward: BoatState} | null {
 	const f = pair.facts;
 	if (!f.sameTack || f.overlapped !== true || f.windwardIsA === null) return null;
@@ -81,11 +83,12 @@ export const SECTION_B_RULES: RuleDefinition[] = [
 		}),
 	},
 	{
-		id: "17.1",
+		id: "17",
 		part: 2,
 		section: "B",
 		scope: "pair",
 		evaluate: onPair(({pair, world, facts, history}) => {
+			if (world.race.phase === "prestart") return []; // no proper course before the starting signal
 			const boats = sameTackOverlapWithinTwoLengths(pair);
 			if (!boats || !history.leewardFromAstern?.[pair.key]?.[boats.leeward.id]) return [];
 			const {leeward, windward} = boats;
@@ -93,36 +96,11 @@ export const SECTION_B_RULES: RuleDefinition[] = [
 			if (!isSailingAboveProperCourse(leeward.heading, properCourse, world.wind.direction)) return [];
 			return [
 				{
-					ruleId: "17.1",
+					ruleId: "17",
 					boat: leeward.id,
 					towards: windward.id,
 					kind: "notAboveProperCourse",
-					detail: `Rule 17.1 — ${leeward.id} established a leeward overlap from astern and is sailing above her proper course (${Math.round(properCourse)}°).`,
-				},
-			];
-		}),
-	},
-	{
-		id: "17.2",
-		part: 2,
-		section: "B",
-		scope: "pair",
-		evaluate: onPair(({pair, world, facts}) => {
-			const boats = sameTackOverlapWithinTwoLengths(pair);
-			if (!boats) return [];
-			const {leeward, windward} = boats;
-			const wind = world.wind.direction;
-			const point = getPointOfSail(windward.heading, wind);
-			if (point === "CLOSE_HAULED" || point === "HEAD_TO_WIND") return []; // on a beat to windward
-			const properCourse = facts.boats[windward.id].properCourse;
-			if (!isSailingBelowProperCourse(windward.heading, properCourse, wind)) return [];
-			return [
-				{
-					ruleId: "17.2",
-					boat: windward.id,
-					towards: leeward.id,
-					kind: "notBelowProperCourse",
-					detail: `Rule 17.2 — ${windward.id} is within two hull lengths of the leeward boat and sailing below her proper course (${Math.round(properCourse)}°).`,
+					detail: `Rule 17 — ${leeward.id} established a leeward overlap from astern and is sailing above her proper course (${Math.round(properCourse)}°).`,
 				},
 			];
 		}),

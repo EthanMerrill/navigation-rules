@@ -215,16 +215,7 @@ export function areOnSameTack(a: Tack | null, b: Tack | null): boolean {
  * the angle (CLOSE_HAULED_ANGLE off the wind); the boat's heading determines
  * which side of the wind she is on (her tack).
  *
- * NOTE / FUTURE WORK (constraint): because proper course is always
- * "close-hauled", Rule 17.2 applies to ANY same-tack, overlapped windward boat
- * within two hull lengths that is sailing below close-hauled — i.e. on any point
- * of sail other than a beat to windward. This makes Rule 17.2 effectively
- * "always on" in common configurations (e.g. the default app state has both
- * boats on a beam reach). To resolve this we need to model a mark/finish
- * location and derive proper course from it, instead of assuming upwind. Revisit
- * before treating Rule 17.2 as production-correct.
- *
- * UPDATE: marks are now modelled. When a boat has a next mark her proper course
+ * Marks are modelled: when a boat has a next mark her proper course
  * comes from `computeProperCourse` (`markFacts.ts`); this function remains the
  * fallback for boats with no next mark, where the upwind assumption still holds.
  */
@@ -282,20 +273,12 @@ export function getSailTrimAngle(heading: number, windDirection: number): number
 const PROPER_COURSE_EPSILON = 1;
 
 /**
- * Whether `heading` points more upwind than `properCourse` (Rule 17.1 — sailing
+ * Whether `heading` points more upwind than `properCourse` (Rule 17 — sailing
  * "above" proper course). The comparison is only meaningful when both courses are
  * on the same tack; Rule 17 only calls this within a same-tack overlap.
  */
 export function isSailingAboveProperCourse(heading: number, properCourse: number, windDirection: number): boolean {
 	return getWindAngle(heading, windDirection) < getWindAngle(properCourse, windDirection) - PROPER_COURSE_EPSILON;
-}
-
-/**
- * Whether `heading` points more downwind than `properCourse` (Rule 17.2 — sailing
- * "below" proper course).
- */
-export function isSailingBelowProperCourse(heading: number, properCourse: number, windDirection: number): boolean {
-	return getWindAngle(heading, windDirection) > getWindAngle(properCourse, windDirection) + PROPER_COURSE_EPSILON;
 }
 
 // ---------------------------------------------------------------------------

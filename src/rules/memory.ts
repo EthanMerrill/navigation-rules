@@ -1,7 +1,7 @@
 /**
  * Engine memory — what the engine remembers from one frame to the next.
  *
- * The time-dependent rules (13, 15, 16, 17.1) need a little history. It lives
+ * The time-dependent rules (13, 15, 16, 17) need a little history. It lives
  * here as plain data, threaded through the pure `step` function: `step` takes
  * the previous memory and returns the next one, so nothing is hidden in React
  * refs or module state. Memory is rebuilt every frame from the boats and pairs
@@ -28,7 +28,7 @@ export interface BoatMemory {
 export interface PairMemory {
 	/** The boat that had right of way last frame (Rule 15); null when none. */
 	prevRightOfWay: string | null;
-	/** Boat id → latched "established a leeward overlap from clear astern" (Rule 17.1). */
+	/** Boat id → latched "established a leeward overlap from clear astern" (Rule 17). */
 	leewardFromAstern: Record<string, boolean>;
 	/** Boat id → whether that boat was clear astern of the other last frame. */
 	prevClearAstern: Record<string, boolean>;

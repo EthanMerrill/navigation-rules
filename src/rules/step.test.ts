@@ -45,7 +45,7 @@ describe("step — basics", () => {
 	});
 });
 
-describe("step — Rule 17.1 latch", () => {
+describe("step — Rule 17 latch", () => {
 	// Wind from north, heading east: port tack. The northern boat is windward.
 	const ahead = boat("ahead", 6, 5, 90);
 
@@ -60,19 +60,19 @@ describe("step — Rule 17.1 latch", () => {
 
 		expect(evaluations[0].pairs[key].overlapped).toBe(false);
 		expect(evaluations[1].pairs[key].overlapped).toBe(true);
-		expect(fired(evaluations[1], "17.1")).toBe(false); // latched, but not sailing above proper course yet
-		expect(fired(evaluations[2], "17.1")).toBe(true);
+		expect(fired(evaluations[1], "17")).toBe(false); // latched, but not sailing above proper course yet
+		expect(fired(evaluations[2], "17")).toBe(true);
 		expect(memory?.pairs[key].leewardFromAstern).toEqual({astern: true});
 
 		// Overlap breaks: latch released and rule no longer fires.
 		const released = run([worldOf(ahead, astern(0, 20))], memory);
 		expect(released.memory?.pairs[key].leewardFromAstern).toEqual({});
-		expect(fired(released.evaluations[0], "17.1")).toBe(false);
+		expect(fired(released.evaluations[0], "17")).toBe(false);
 	});
 
 	it("does not latch for a boat that was already overlapped", () => {
 		const {evaluations} = run([worldOf(ahead, boat("astern", 5.9, 6, 90)), worldOf(ahead, boat("astern", 5.9, 6, 20))]);
-		expect(fired(evaluations[1], "17.1")).toBe(false);
+		expect(fired(evaluations[1], "17")).toBe(false);
 	});
 });
 
