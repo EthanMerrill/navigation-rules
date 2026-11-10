@@ -1,8 +1,15 @@
 import type {WindState} from "../model/world";
+import {SCENARIOS} from "../scenarios";
 
 interface AppHeaderProps {
 	wind: WindState;
 	onWindChange: (direction: number) => void;
+	/** Id of the loaded scenario; "" for the default scene. */
+	scenarioId: string;
+	/** Called with a scenario id, or "" for the default scene. */
+	onScenarioChange: (id: string) => void;
+	/** Reload the current scenario. */
+	onReset: () => void;
 }
 
 const COMPASS_POINTS = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"] as const;
@@ -19,7 +26,7 @@ function compassLabel(direction: number): string {
 	return COMPASS_POINTS[idx];
 }
 
-const AppHeader = ({wind, onWindChange}: AppHeaderProps) => {
+const AppHeader = ({wind, onWindChange, scenarioId, onScenarioChange, onReset}: AppHeaderProps) => {
 	return (
 		<header className="app-header">
 			<div className="control-bar">
@@ -39,6 +46,22 @@ const AppHeader = ({wind, onWindChange}: AppHeaderProps) => {
 							</button>
 						))}
 					</div>
+				</div>
+				<div className="control-row">
+					<label className="control-label" htmlFor="scenario-picker">
+						Scenario
+					</label>
+					<select id="scenario-picker" className="scenario-picker" value={scenarioId} onChange={(e) => onScenarioChange(e.target.value)}>
+						<option value="">Default scene</option>
+						{SCENARIOS.map((scenario) => (
+							<option key={scenario.id} value={scenario.id}>
+								{scenario.title}
+							</option>
+						))}
+					</select>
+					<button type="button" className="reset-button" onClick={onReset}>
+						Reset
+					</button>
 				</div>
 			</div>
 		</header>

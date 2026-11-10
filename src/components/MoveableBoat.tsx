@@ -5,6 +5,7 @@ import type {BoatState} from "../model/world";
 import {BoatView, PointOfSail} from "../rules/rulesEngine";
 import type {WorldAction} from "../state/worldReducer";
 import {centerFromWrapperOrigin, wrapperOrigin} from "../view/scale";
+import {obligationLabels} from "../ui/obligationLabels";
 
 export interface ImoveableBoatProps {
 	boatState: BoatState;
@@ -105,18 +106,6 @@ const MoveableBoat = (props: ImoveableBoatProps) => {
 					transform,
 				}}>
 				<img alt={text} src={PrototypeBoat} className={boatView.standOn ? "standon-boat" : undefined} />
-				{boatView.windwardOf.length > 0 && (
-					<div className="windward-tag">
-						<p className="text-tag">Windward</p>
-					</div>
-				)}
-				{boatView.leewardOf.length > 0 && (
-					<div className="leeward-tag">
-						<p className="text-tag">
-							<u>Leeward</u>
-						</p>
-					</div>
-				)}
 				{boatView.tack === "STARBOARD" && (
 					<div className="starboard-tag">
 						<p className="text-tag">Starboard</p>
@@ -128,7 +117,7 @@ const MoveableBoat = (props: ImoveableBoatProps) => {
 					</div>
 				)}
 				{boatView.tack === null && (
-					<div className="windward-tag">
+					<div className="head-to-wind-tag">
 						<p className="text-tag">Head to wind</p>
 					</div>
 				)}
@@ -140,6 +129,23 @@ const MoveableBoat = (props: ImoveableBoatProps) => {
 				<div className="point-of-sail-tag">
 					<p className="text-tag">{POINT_OF_SAIL_LABELS[boatView.pointOfSail]}</p>
 				</div>
+				{obligationLabels(boatView.obligations).map((label) => (
+					<div className="obligation-tag" key={label}>
+						<p className="text-tag">{label}</p>
+					</div>
+				))}
+				{boatView.windwardOf.length > 0 && (
+					<div className="windward-tag">
+						<p className="text-tag text-tag--secondary">Windward</p>
+					</div>
+				)}
+				{boatView.leewardOf.length > 0 && (
+					<div className="leeward-tag">
+						<p className="text-tag text-tag--secondary">
+							<u>Leeward</u>
+						</p>
+					</div>
+				)}
 				<svg
 					className={isFlapping ? "sail-path sail-path--flapping" : "sail-path"}
 					width="11"

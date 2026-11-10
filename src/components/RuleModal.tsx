@@ -1,10 +1,13 @@
 import {useEffect} from "react";
 import {createPortal} from "react-dom";
 import {motion, AnimatePresence} from "motion/react";
-import {RuleState} from "../rules/rulesEngine";
+import type {RuleContent} from "../rules/rulesEngine";
+
+/** The content the modal shows; both `RuleState` and `RuleContent` satisfy it. */
+export type RuleModalRule = Pick<RuleContent, "id" | "title" | "description" | "fullText" | "laymanExplanation" | "note">;
 
 interface RuleModalProps {
-	rule: RuleState | null;
+	rule: RuleModalRule | null;
 	onClose: () => void;
 }
 

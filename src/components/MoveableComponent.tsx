@@ -5,8 +5,8 @@ interface iMovableComponentProps {
 	moveRef: React.RefObject<HTMLDivElement | null>;
 	/** Called on drag with the current translate [x, y] of the target's top-left. */
 	onDrag: (x: number, y: number) => void;
-	/** Called on rotate with the current rotation in degrees. */
-	onRotate: (rotation: number) => void;
+	/** Called on rotate with the current rotation in degrees; omit for a drag-only target. */
+	onRotate?: (rotation: number) => void;
 }
 
 const MovableComponent = ({moveRef, onDrag, onRotate}: iMovableComponentProps) => {
@@ -21,12 +21,12 @@ const MovableComponent = ({moveRef, onDrag, onRotate}: iMovableComponentProps) =
 	};
 
 	const handleRotate = (e: OnRotate) => {
-		onRotate(e.rotate);
+		onRotate?.(e.rotate);
 	};
 
 	if (!renderMovable) return null;
 
-	return <Moveable className="moveable-controls" target={moveRef.current} draggable={true} throttleDrag={0} onDrag={handleDrag} rotatable={true} onRotate={handleRotate} renderDirections={[]} />;
+	return <Moveable className="moveable-controls" target={moveRef.current} draggable={true} throttleDrag={0} onDrag={handleDrag} rotatable={onRotate !== undefined} onRotate={handleRotate} renderDirections={[]} />;
 };
 
 export default MovableComponent;

@@ -1,17 +1,21 @@
+import type React from "react";
 import {useEffect, useMemo, useRef, useState} from "react";
 import {motion} from "motion/react";
 import "../styles/styles.css";
-import {RuleEvaluation, RuleState, compareRuleIds} from "../rules/rulesEngine";
+import {RuleContent, RuleEvaluation, RuleState, compareRuleIds} from "../rules/rulesEngine";
 import {CooldownState, useCooldowns} from "../hooks/useCooldowns";
+import {useCollapsedGroups} from "../hooks/useCollapsedGroups";
 import {displayOf, isShownApplicable} from "../ui/ruleDisplay";
-import RuleModal from "./RuleModal";
+import {REFERENCE_GROUP_KEY, groupRules} from "../ui/ruleGroups";
+import RuleModal, {RuleModalRule} from "./RuleModal";
 
 interface RulesSidebarProps {
 	evaluation: RuleEvaluation;
 }
 
 const RulesSidebar = ({evaluation}: RulesSidebarProps) => {
-	const [selectedRule, setSelectedRule] = useState<RuleState | null>(null);
+	const [selectedRule, setSelectedRule] = useState<RuleModalRule | null>(null);
+	const {isCollapsed, toggle} = useCollapsedGroups([REFERENCE_GROUP_KEY]);
 	const cooldowns = useCooldowns(evaluation);
 
 	// Rules that always apply (Rule 14) only count as applicable in the sidebar
@@ -33,6 +37,10 @@ const RulesSidebar = ({evaluation}: RulesSidebarProps) => {
 		return [...deciding, ...active, ...inactive];
 	}, [shownRules, cooldowns]);
 
+	// Group by Part/Section; the ordering above is kept within each group.
+	const groups = useMemo(() => groupRules(orderedRules), [orderedRules]);
+	const isActive = (rule: RuleState) => rule.applicable || cooldowns[rule.id]?.active === true;
+
 	const collided = Object.values(evaluation.pairs).some((pair) => pair.collided);
 
 	return (
@@ -42,19 +50,66 @@ const RulesSidebar = ({evaluation}: RulesSidebarProps) => {
 				<p>These rules determine which boat has the right of way (stand-on) and which boat must keep clear (give-way). The boat with a green shadow has the right of way. Click a rule to read its full text.</p>
 			</div>
 			<div className="rules-sidebar__content">
-				{orderedRules.map((rule) => (
-					<RuleCard key={rule.id} rule={rule} collided={collided} cooldown={displayOf(rule.id).cooldownMs !== undefined ? cooldowns[rule.id] : undefined} onSelect={setSelectedRule} />
-				))}
+				{groups.map((group) => {
+					const activeCount = group.rules.filter(isActive).length;
+					return (
+						<RuleGroupSection key={group.key} groupKey={group.key} title={group.title} count={`${activeCount} active`} highlighted={activeCount > 0} collapsed={isCollapsed(group.key)} onToggle={toggle}>
+							{group.rules.map((rule) => (
+								<RuleCard key={rule.id} rule={rule} collided={collided} cooldown={displayOf(rule.id).cooldownMs !== undefined ? cooldowns[rule.id] : undefined} onSelect={setSelectedRule} />
+							))}
+						</RuleGroupSection>
+					);
+				})}
+				<RuleGroupSection groupKey={REFERENCE_GROUP_KEY} title="Other rules (reference only)" count={`${evaluation.referenceRules.length} rules`} collapsed={isCollapsed(REFERENCE_GROUP_KEY)} onToggle={toggle}>
+					{evaluation.referenceRules.map((rule) => (
+						<ReferenceRuleCard key={rule.id} rule={rule} onSelect={setSelectedRule} />
+					))}
+				</RuleGroupSection>
 			</div>
 			<RuleModal rule={selectedRule} onClose={() => setSelectedRule(null)} />
 		</div>
 	);
 };
 
+interface RuleGroupSectionProps {
+	groupKey: string;
+	title: string;
+	/** Badge text, e.g. "2 active". */
+	count: string;
+	/** Style the badge as having activity. */
+	highlighted?: boolean;
+	collapsed: boolean;
+	onToggle: (key: string) => void;
+	children: React.ReactNode;
+}
+
+/** A collapsible group of rule cards under a header button. */
+const RuleGroupSection = ({groupKey, title, count, highlighted, collapsed, onToggle, children}: RuleGroupSectionProps) => (
+	<section className="rule-group">
+		<button type="button" className="rule-group__header" aria-expanded={!collapsed} onClick={() => onToggle(groupKey)}>
+			<span className="rule-group__chevron" aria-hidden="true">
+				{collapsed ? "▸" : "▾"}
+			</span>
+			<span className="rule-group__title">{title}</span>
+			<span className={highlighted ? "rule-group__count rule-group__count--active" : "rule-group__count"}>{count}</span>
+		</button>
+		{!collapsed && <div className="rule-group__rules">{children}</div>}
+	</section>
+);
+
+/** A compact, non-expandable card for a reference-only rule; click opens the modal. */
+const ReferenceRuleCard = ({rule, onSelect}: {rule: RuleContent; onSelect: (rule: RuleModalRule) => void}) => (
+	<button type="button" className="rule-card rule-card--reference" onClick={() => onSelect(rule)}>
+		<h3 className="rule-card__title">
+			Rule {rule.id} — {rule.title}
+		</h3>
+	</button>
+);
+
 /** How long the reorder (layout) animation takes before a card expands. */
 const REORDER_DELAY = 0.28;
 
-const RuleCard = ({rule, collided, cooldown, onSelect}: {rule: RuleState; collided?: boolean; cooldown?: CooldownState; onSelect: (rule: RuleState) => void}) => {
+const RuleCard = ({rule, collided, cooldown, onSelect}: {rule: RuleState; collided?: boolean; cooldown?: CooldownState; onSelect: (rule: RuleModalRule) => void}) => {
 	// A cooldown rule stays visibly "applicable" while its cooldown is still
 	// counting down, even after the engine has already reported it not-applicable.
 	const applicable = cooldown ? cooldown.active || rule.applicable : rule.applicable;

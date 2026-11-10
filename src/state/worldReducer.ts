@@ -12,6 +12,8 @@ export type WorldAction =
 	| {type: "setNextLeg"; id: string; legIndex: number}
 	| {type: "addBoat"; boat?: Partial<BoatState>}
 	| {type: "removeBoat"; id: string}
+	| {type: "moveMark"; id: string; x: number; y: number}
+	| {type: "moveObstruction"; id: string; x: number; y: number}
 	| {type: "loadScenario"; world: WorldState};
 
 /** The default scene: two boats abreast on a beam reach, wind from the north. */
@@ -62,6 +64,10 @@ export function worldReducer(world: WorldState, action: WorldAction): WorldState
 		}
 		case "removeBoat":
 			return {...world, boats: world.boats.filter((boat) => boat.id !== action.id)};
+		case "moveMark":
+			return {...world, marks: world.marks.map((mark) => (mark.id === action.id ? {...mark, x: action.x, y: action.y} : mark))};
+		case "moveObstruction":
+			return {...world, obstructions: world.obstructions.map((obstruction) => (obstruction.id === action.id ? {...obstruction, x: action.x, y: action.y} : obstruction))};
 		case "loadScenario":
 			return action.world;
 	}
