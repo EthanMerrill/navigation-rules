@@ -118,8 +118,8 @@ const EVALUABLE_CONTENT: RuleContent[] = [
 		description: "A boat that establishes a leeward overlap from astern must not sail above her proper course.",
 		fullText: "If a boat clear astern becomes overlapped within two of her hull lengths to leeward of a boat on the same tack, she shall not sail above her proper course while they remain on the same tack and overlapped within that distance.",
 		laymanExplanation: "When you sail up from behind and establish an overlap to leeward of another boat, you cannot then turn up toward the wind to push them — you may sail no higher than the course you would sail toward the finish (your proper course).",
-		note: "A boat's proper course is assumed to be close-hauled on her current tack — the finish is assumed to be upwind. Until a mark/finish is modelled, Rule 17 treats any windward boat sailing below close-hauled as sailing below her proper course.",
-		noteShort: "Proper course assumed close-hauled (finish upwind).",
+		note: "A boat's proper course is the straight-line bearing to her next mark, no higher than close-hauled on her current tack. A boat with no next mark is assumed to be heading upwind, so her proper course is close-hauled on her current tack. Tide, laylines and the tacks needed to reach an upwind mark are ignored.",
+		noteShort: "Proper course: bearing to next mark, else close-hauled.",
 	},
 	{
 		id: "17.2",
@@ -130,8 +130,8 @@ const EVALUABLE_CONTENT: RuleContent[] = [
 		description: "A windward boat close to a leeward boat must not sail below her proper course unless she gybes.",
 		fullText: "Except on a beat to windward, while a boat is less than two of her hull lengths from a leeward boat or a boat clear astern that is steering a course to pass to leeward, she shall not sail below her proper course unless she gybes.",
 		laymanExplanation: "A windward boat sailing close above a leeward boat cannot bear away below her proper course (unless she gybes) — she cannot force the leeward boat down the course.",
-		note: "A boat's proper course is assumed to be close-hauled on her current tack — the finish is assumed to be upwind. Until a mark/finish is modelled, Rule 17 treats any windward boat sailing below close-hauled as sailing below her proper course.",
-		noteShort: "Proper course assumed close-hauled (finish upwind).",
+		note: "A boat's proper course is the straight-line bearing to her next mark, no higher than close-hauled on her current tack. A boat with no next mark is assumed to be heading upwind, so her proper course is close-hauled on her current tack. Tide, laylines and the tacks needed to reach an upwind mark are ignored.",
+		noteShort: "Proper course: bearing to next mark, else close-hauled.",
 	},
 ];
 

@@ -31,6 +31,8 @@
  */
 
 import type {BoatState, WindState, WorldState} from "../model/world";
+import {computeMarkFacts, computeProperCourse} from "./markFacts";
+import type {BoatMarkFacts} from "./markFacts";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -81,6 +83,12 @@ export interface BoatFacts {
 	 * reports false and `step` fills it in from engine memory.
 	 */
 	tacking: boolean;
+	/**
+	 * Heading (degrees) of the boat's proper course: the bearing to her next
+	 * mark (no higher than close-hauled on her tack), or close-hauled on her
+	 * tack when she has no next mark. See `computeProperCourse`.
+	 */
+	properCourse: number;
 }
 
 /**
@@ -98,6 +106,8 @@ export interface WorldFacts {
 	boats: Record<string, BoatFacts>;
 	/** Keyed by `pairKey(idA, idB)`. */
 	pairs: Record<string, PairFacts>;
+	/** Keyed by `markSlotKey(boatId, markId)`: one entry per boat per mark. */
+	marks: Record<string, BoatMarkFacts>;
 }
 
 // ---------------------------------------------------------------------------
@@ -198,6 +208,10 @@ export function areOnSameTack(a: Tack | null, b: Tack | null): boolean {
  * boats on a beam reach). To resolve this we need to model a mark/finish
  * location and derive proper course from it, instead of assuming upwind. Revisit
  * before treating Rule 17.2 as production-correct.
+ *
+ * UPDATE: marks are now modelled. When a boat has a next mark her proper course
+ * comes from `computeProperCourse` (`markFacts.ts`); this function remains the
+ * fallback for boats with no next mark, where the upwind assumption still holds.
  */
 export function inferProperCourse(heading: number, windDirection: number): number {
 	const tack = getTack(heading, windDirection);
@@ -645,12 +659,15 @@ export function pairKey(idA: string, idB: string): string {
 }
 
 /** Facts about one boat. Falls back to `prevTack` while the boat is head-to-wind. */
-function computeBoatFacts(boat: BoatState, wind: WindState, prevTack?: Tack | null): BoatFacts {
+function computeBoatFacts(boat: BoatState, world: WorldState, prevTack?: Tack | null): BoatFacts {
+	const wind = world.wind;
+	const tack = getTack(boat.heading, wind.direction) ?? prevTack ?? null;
 	return {
-		tack: getTack(boat.heading, wind.direction) ?? prevTack ?? null,
+		tack,
 		pointOfSail: getPointOfSail(boat.heading, wind.direction),
 		sailTrimAngle: getSailTrimAngle(boat.heading, wind.direction),
 		tacking: false,
+		properCourse: computeProperCourse(boat, world, tack),
 	};
 }
 
@@ -684,7 +701,7 @@ function computePairFacts(a: BoatState, b: BoatState, aTack: Tack | null, bTack:
 export function computeFacts(world: WorldState, prevTacks?: Record<string, Tack | null>): WorldFacts {
 	const boats: Record<string, BoatFacts> = {};
 	for (const boat of world.boats) {
-		boats[boat.id] = computeBoatFacts(boat, world.wind, prevTacks?.[boat.id]);
+		boats[boat.id] = computeBoatFacts(boat, world, prevTacks?.[boat.id]);
 	}
 
 	const pairs: Record<string, PairFacts> = {};
@@ -695,7 +712,7 @@ export function computeFacts(world: WorldState, prevTacks?: Record<string, Tack 
 		}
 	}
 
-	return {boats, pairs};
+	return {boats, pairs, marks: computeMarkFacts(world)};
 }
 
 /**
@@ -708,8 +725,8 @@ export function computeMeetingFacts(
 	wind: WindState,
 	prevTacks?: PrevTacks,
 ): {aTack: Tack | null; bTack: Tack | null; facts: MeetingFacts} {
-	const aTack = computeBoatFacts(a, wind, prevTacks?.a).tack;
-	const bTack = computeBoatFacts(b, wind, prevTacks?.b).tack;
+	const aTack = getTack(a.heading, wind.direction) ?? prevTacks?.a ?? null;
+	const bTack = getTack(b.heading, wind.direction) ?? prevTacks?.b ?? null;
 	const {a: _a, b: _b, ...facts} = computePairFacts(a, b, aTack, bTack, wind);
 	return {aTack, bTack, facts};
 }

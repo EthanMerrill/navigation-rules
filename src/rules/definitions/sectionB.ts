@@ -12,7 +12,7 @@
  */
 
 import type {BoatState} from "../../model/world";
-import {TWO_HULL_LENGTHS, getPointOfSail, inferProperCourse, isSailingAboveProperCourse, isSailingBelowProperCourse} from "../factsEngine";
+import {TWO_HULL_LENGTHS, getPointOfSail, isSailingAboveProperCourse, isSailingBelowProperCourse} from "../factsEngine";
 import type {PairContext, RuleDefinition} from "../types";
 import {onPair, otherOf} from "./helpers";
 
@@ -85,11 +85,11 @@ export const SECTION_B_RULES: RuleDefinition[] = [
 		part: 2,
 		section: "B",
 		scope: "pair",
-		evaluate: onPair(({pair, world, history}) => {
+		evaluate: onPair(({pair, world, facts, history}) => {
 			const boats = sameTackOverlapWithinTwoLengths(pair);
 			if (!boats || !history.leewardFromAstern?.[pair.key]?.[boats.leeward.id]) return [];
 			const {leeward, windward} = boats;
-			const properCourse = inferProperCourse(leeward.heading, world.wind.direction);
+			const properCourse = facts.boats[leeward.id].properCourse;
 			if (!isSailingAboveProperCourse(leeward.heading, properCourse, world.wind.direction)) return [];
 			return [
 				{
@@ -107,14 +107,14 @@ export const SECTION_B_RULES: RuleDefinition[] = [
 		part: 2,
 		section: "B",
 		scope: "pair",
-		evaluate: onPair(({pair, world}) => {
+		evaluate: onPair(({pair, world, facts}) => {
 			const boats = sameTackOverlapWithinTwoLengths(pair);
 			if (!boats) return [];
 			const {leeward, windward} = boats;
 			const wind = world.wind.direction;
 			const point = getPointOfSail(windward.heading, wind);
 			if (point === "CLOSE_HAULED" || point === "HEAD_TO_WIND") return []; // on a beat to windward
-			const properCourse = inferProperCourse(windward.heading, wind);
+			const properCourse = facts.boats[windward.id].properCourse;
 			if (!isSailingBelowProperCourse(windward.heading, properCourse, wind)) return [];
 			return [
 				{
