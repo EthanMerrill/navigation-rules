@@ -662,3 +662,10 @@
 	opacity: 0.45;
 	cursor: not-allowed;
 }
+
+.hail-warning {
+	font-family: inter;
+	font-size: 12px;
+	font-weight: 600;
+	color: #856404;
+}

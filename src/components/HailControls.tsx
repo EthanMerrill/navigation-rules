@@ -10,9 +10,10 @@ interface HailControlsProps {
 
 /**
  * Hail controls (Rule 20): one "Hail for room to tack" button per boat, aimed at
- * the nearest boat on the same tack and disabled, with the reason as a tooltip,
- * when the hail would not be valid. A hailed boat can answer "You tack". Hails
- * stay until cleared.
+ * the nearest boat on the same tack. A hail that breaks rule 20.1 can still be
+ * made (the hailed boat must respond anyway, Rule 20.2(b)); a visible warning
+ * next to the button says which part of 20.1 it breaks. A hailed boat can
+ * answer "You tack". Hails stay until cleared.
  */
 const HailControls = ({world, dispatch}: HailControlsProps) => {
 	const facts = React.useMemo(() => computeFacts(world), [world]);
@@ -21,18 +22,24 @@ const HailControls = ({world, dispatch}: HailControlsProps) => {
 			<span className="control-label">Hails</span>
 			{world.boats.map((boat) => {
 				const target = hailTarget(world, facts, boat.id);
-				const problem = target === null ? "No boat on the same tack to hail" : hailProblem(world, facts, boat.id, target);
+				const problem = target === null ? null : hailProblem(world, facts, boat.id, target);
 				const alreadyHailed = target !== null && world.hails.some((h) => h.kind === "roomToTack" && h.from === boat.id && h.to === target);
 				return (
-					<button
-						key={boat.id}
-						type="button"
-						className="reset-button"
-						disabled={problem !== null || alreadyHailed}
-						title={problem ?? (alreadyHailed ? "Already hailed" : `${boat.id} hails ${target} for room to tack`)}
-						onClick={() => target !== null && dispatch({type: "hail", from: boat.id, to: target, kind: "roomToTack", at: performance.now()})}>
-						{boat.id}: room to tack
-					</button>
+					<React.Fragment key={boat.id}>
+						<button
+							type="button"
+							className="reset-button"
+							disabled={target === null || alreadyHailed}
+							title={target === null ? "No boat on the same tack to hail" : alreadyHailed ? "Already hailed" : `${boat.id} hails ${target} for room to tack`}
+							onClick={() => target !== null && dispatch({type: "hail", from: boat.id, to: target, kind: "roomToTack", at: performance.now()})}>
+							{boat.id}: room to tack
+						</button>
+						{problem !== null && (
+							<span className="hail-warning" role="status">
+								breaks rule 20.1: {problem}
+							</span>
+						)}
+					</React.Fragment>
 				);
 			})}
 			{world.hails

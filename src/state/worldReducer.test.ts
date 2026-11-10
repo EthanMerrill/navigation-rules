@@ -33,6 +33,11 @@ describe("worldReducer — hails", () => {
 		expect(reply.hails.map((h) => h.id)).toEqual(["hail1", "hail2"]);
 	});
 
+	it("accepts a hail whatever the situation: validity (rule 20.1) is a warning in the UI, not a gate", () => {
+		// The default world has no obstruction and both boats on a beam reach, so the hail would break 20.1.
+		expect(worldReducer(world, {type: "hail", from: "boat1", to: "boat2", kind: "roomToTack"}).hails).toHaveLength(1);
+	});
+
 	it("clearHails empties the hails", () => {
 		const hailed = worldReducer(world, {type: "hail", from: "boat1", to: "boat2", kind: "roomToTack"});
 		expect(worldReducer(hailed, {type: "clearHails"}).hails).toEqual([]);

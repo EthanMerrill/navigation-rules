@@ -39,6 +39,28 @@ describe("Rule 19 — applicability", () => {
 	});
 });
 
+describe("Rule 19.2(a) — right-of-way boat changing course", () => {
+	// Overlapped on port tack, obstruction to the south: b (south) is leeward and has right of way (Rule 11).
+	const a = boat("a", 6.5, 7.5);
+	const b = (heading: number) => boat("b", 6.5, 8.8, heading);
+
+	it("makes the right-of-way boat give room when she changes course while approaching the obstruction", () => {
+		const e = run([worldOf([a, b(90)]), worldOf([a, b(96)])])[1];
+		expect(e.pairs["a|b"].rightOfWay).toBe("b");
+		expect(giveRoom(e, "19.2a")).toEqual([["b", "a"]]);
+	});
+
+	it("does not apply when she holds her course, or when the give-way boat is the one turning", () => {
+		expect(fired(run([worldOf([a, b(90)]), worldOf([a, b(90)])])[1], "19.2a")).toBe(false);
+		expect(fired(run([worldOf([a, b(90)]), worldOf([boat("a", 6.5, 7.5, 96), b(90)])])[1], "19.2a")).toBe(false);
+	});
+
+	it("does not apply when no obstruction is being approached", () => {
+		const far: Obstruction = {id: "o", x: 40, y: 40, radius: 1};
+		expect(fired(run([worldOf([a, b(90)], far), worldOf([a, b(96)], far)])[1], "19.2a")).toBe(false);
+	});
+});
+
 describe("Rule 19.2(b)", () => {
 	// Obstruction to the south of both boats; b (larger y) is inside.
 	const a = boat("a", 6.5, 7.5);
@@ -69,6 +91,17 @@ describe("Rule 19.2(c) — no room when the overlap begins", () => {
 			expect(fired(e, "19.2c")).toBe(true);
 			expect(fired(e, "19.2b")).toBe(false);
 		}
+	});
+
+	it("makes the squeezing-in boat keep clear and suspends rules 10 and 11 while they stay overlapped", () => {
+		const big: Obstruction = {id: "o", x: 10, y: 12, radius: 2};
+		const a = boat("a", 8.6, 9.9);
+		const e = run([worldOf([a, boat("b", 4, 10.5)], big), worldOf([a, boat("b", 8.6, 10.5)], big)])[1];
+		expect(e.obligations.filter((o) => o.ruleId === "19.2c").map((o) => [o.boat, o.towards, o.kind])).toEqual([["b", "a", "keepClear"]]);
+		expect(fired(e, "11")).toBe(false);
+		expect(fired(e, "10")).toBe(false);
+		expect(e.pairs["a|b"].rightOfWay).toBe("a");
+		expect(e.pairs["a|b"].decidingRuleId).toBe("19.2c");
 	});
 
 	it("lets 19.2(b) stand when there was room at the moment the overlap began", () => {

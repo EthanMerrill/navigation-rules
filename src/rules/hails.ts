@@ -14,7 +14,8 @@ export function approachesObstruction(world: WorldState, facts: WorldFacts, boat
 }
 
 /**
- * Why `from` cannot validly hail `to` for room to tack (Rule 20.1), or null when she can.
+ * Why a hail by `from` to `to` for room to tack would break rule 20.1, or null when it would not.
+ * A hail that breaks 20.1 still has to be responded to (Rule 20.2(b)), so this is a warning, not a gate.
  *
  * She must be close-hauled or above, on the same tack as the hailed boat, and
  * approaching an obstruction. NOT MODELLED: that she needs a substantial course
