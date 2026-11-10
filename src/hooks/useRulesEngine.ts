@@ -1,19 +1,23 @@
 import {useEffect, useMemo, useRef} from "react";
-import {BoatState, WindState, RuleEvaluation, Tack, evaluate, getTack, isClearAstern, computeMeetingFacts, TWO_HULL_LENGTHS} from "../rules/rulesEngine";
+import type {WorldState} from "../model/world";
+import {RuleEvaluation, Tack, evaluate, getTack, isClearAstern, computeMeetingFacts, TWO_HULL_LENGTHS} from "../rules/rulesEngine";
 
 /** Heading change (degrees) above which a boat is considered to be changing course. */
 const COURSE_CHANGE_EPSILON = 0.5;
 
 /**
  * React glue around the pure rules engine. Memoizes the evaluation and tracks
- * the history needed by the stateful limitation rules:
+ * the history needed by the stateful limitation rules. TEMPORARY: evaluates
+ * only the first two boats of the world (Phase 2 generalises this). History:
  *   - previous tack of each boat (avoid head-to-wind flicker),
  *   - previous stand-on boat (Rule 15 — acquiring right of way),
  *   - previous headings (Rule 16 — changing course).
  */
-export function useRulesEngine(boatA: BoatState, boatB: BoatState, wind: WindState): RuleEvaluation {
+export function useRulesEngine(world: WorldState): RuleEvaluation | null {
+	const [boatA, boatB] = world.boats;
+	const wind = world.wind;
 	const prevTacksRef = useRef<{a: Tack | null; b: Tack | null}>({a: null, b: null});
-	const prevHeadingsRef = useRef<{a: number; b: number}>({a: boatA.heading, b: boatB.heading});
+	const prevHeadingsRef = useRef<{a: number; b: number}>({a: boatA?.heading ?? 0, b: boatB?.heading ?? 0});
 	const prevStandOnIsARef = useRef<boolean | null>(null);
 
 	// Rule 17.1 transition history: whether each boat has (in a prior frame)
@@ -24,6 +28,7 @@ export function useRulesEngine(boatA: BoatState, boatB: BoatState, wind: WindSta
 	const prevClearAsternBRef = useRef(false);
 
 	const evaluation = useMemo(() => {
+		if (!boatA || !boatB) return null;
 		const changingCourseA = Math.abs(boatA.heading - prevHeadingsRef.current.a) > COURSE_CHANGE_EPSILON;
 		const changingCourseB = Math.abs(boatB.heading - prevHeadingsRef.current.b) > COURSE_CHANGE_EPSILON;
 
@@ -38,9 +43,10 @@ export function useRulesEngine(boatA: BoatState, boatB: BoatState, wind: WindSta
 	}, [boatA, boatB, wind]);
 
 	// The stand-on boat is determined by the deciding rule.
-	const standOnIsA: boolean | null = evaluation.boats[0].standOn ? true : evaluation.boats[1].standOn ? false : null;
+	const standOnIsA: boolean | null = !evaluation ? null : evaluation.boats[0].standOn ? true : evaluation.boats[1].standOn ? false : null;
 
 	useEffect(() => {
+		if (!boatA || !boatB) return;
 		const aTack = getTack(boatA.heading, wind.direction);
 		const bTack = getTack(boatB.heading, wind.direction);
 		if (aTack !== null) prevTacksRef.current.a = aTack;

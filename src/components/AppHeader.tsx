@@ -1,10 +1,9 @@
-import {WindState} from "../rules/rulesEngine";
+import type {BoatState, WindState} from "../model/world";
 
 interface AppHeaderProps {
 	wind: WindState;
 	onWindChange: (direction: number) => void;
-	boat1Tacking: boolean;
-	boat2Tacking: boolean;
+	boats: BoatState[];
 	onToggleTacking: (boatId: string) => void;
 }
 
@@ -22,7 +21,7 @@ function compassLabel(direction: number): string {
 	return COMPASS_POINTS[idx];
 }
 
-const AppHeader = ({wind, onWindChange, boat1Tacking, boat2Tacking, onToggleTacking}: AppHeaderProps) => {
+const AppHeader = ({wind, onWindChange, boats, onToggleTacking}: AppHeaderProps) => {
 	return (
 		<header className="app-header">
 			<div className="control-bar">
@@ -45,12 +44,11 @@ const AppHeader = ({wind, onWindChange, boat1Tacking, boat2Tacking, onToggleTack
 				</div>
 				<div className="control-row">
 					<span className="control-label">Tacking</span>
-					<button type="button" className={`tacking-toggle${boat1Tacking ? " tacking-toggle--active" : ""}`} onClick={() => onToggleTacking("boat1")}>
-						boat1 {boat1Tacking ? "is tacking" : "not tacking"}
-					</button>
-					<button type="button" className={`tacking-toggle${boat2Tacking ? " tacking-toggle--active" : ""}`} onClick={() => onToggleTacking("boat2")}>
-						boat2 {boat2Tacking ? "is tacking" : "not tacking"}
-					</button>
+					{boats.map((boat) => (
+						<button key={boat.id} type="button" className={`tacking-toggle${boat.tacking ? " tacking-toggle--active" : ""}`} onClick={() => onToggleTacking(boat.id)}>
+							{boat.id} {boat.tacking ? "is tacking" : "not tacking"}
+						</button>
+					))}
 				</div>
 			</div>
 		</header>

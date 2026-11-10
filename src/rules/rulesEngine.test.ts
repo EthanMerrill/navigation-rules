@@ -1,11 +1,22 @@
-import {BoatState, WindState, TWO_HULL_LENGTHS, areOnSameTack, boatPerimeterDistance, evaluate, getAheadBoat, getHullVertices, getPointOfSail, getSailTrimAngle, getTack, getTransomLine, getWindAngle, getWindwardBoat, inferProperCourse, isClearAstern, isOverlapped, isSailingAboveProperCourse, isSailingBelowProperCourse} from "./rulesEngine";
+import type {BoatState, WindState, WorldState} from "../model/world";
+import {PX_PER_HULL_LENGTH, toWorld} from "../view/scale";
+import {worldReducer, createDefaultWorld} from "../state/worldReducer";
+import {TWO_HULL_LENGTHS, HULL_ACTUAL_LENGTH, HULL_FOREMOST_OFFSET, HULL_AFTERMOST_OFFSET, computeFacts, computeMeetingFacts, pairKey, areOnSameTack, boatPerimeterDistance, evaluate, getAheadBoat, getHullVertices, getPointOfSail, getSailTrimAngle, getTack, getTransomLine, getWindAngle, getWindwardBoat, inferProperCourse, isClearAstern, isOverlapped, isSailingAboveProperCourse, isSailingBelowProperCourse} from "./rulesEngine";
 
 // All tests use wind blowing FROM the north (0°), i.e. down the screen.
 const WIND_NORTH: WindState = {direction: 0};
 
-function boat(id: string, x: number, y: number, heading: number, tacking = false): BoatState {
-	return {id, x, y, heading, tacking};
+/** Build a boat from PIXEL coordinates (converted to world units via `toWorld`). */
+function boat(id: string, xPx: number, yPx: number, heading: number, tacking = false): BoatState {
+	const p = toWorld({x: xPx, y: yPx});
+	return {id, x: p.x, y: p.y, heading, tacking, nextLegIndex: 0};
 }
+
+/** Alias of `boat` that makes the pixel input explicit. */
+const boatPx = boat;
+
+/** Convert a world length (hull lengths) to pixels for readable assertions. */
+const px = (length: number) => length * PX_PER_HULL_LENGTH;
 
 describe("getTack", () => {
 	it("reports port tack when wind comes over the port side", () => {
@@ -164,8 +175,8 @@ describe("getHullVertices", () => {
 		// at (±50, −100) instead.
 		const b = boat("b", 0, 0, 0);
 		const v = getHullVertices(b);
-		expect(v[0].x).toBeCloseTo(-0.5, 0);
-		expect(v[0].y).toBeCloseTo(-98.55, 0);
+		expect(px(v[0].x)).toBeCloseTo(-0.5, 0);
+		expect(px(v[0].y)).toBeCloseTo(-98.55, 0);
 	});
 
 	it("is ~77.7px wide with the transom ~63px astern (matches the SVG)", () => {
@@ -174,9 +185,10 @@ describe("getHullVertices", () => {
 		const xs = v.map((p) => p.x);
 		const ys = v.map((p) => p.y);
 		const beam = Math.max(...xs) - Math.min(...xs);
-		expect(beam).toBeCloseTo(77.7, 1);
+		expect(px(beam)).toBeCloseTo(77.7, 0);
+		expect(beam).toBeCloseTo(0.48, 2);
 		// The flat stern sits ~63px behind centre, not 100px like a centred box.
-		expect(Math.max(...ys)).toBeCloseTo(63, 0);
+		expect(px(Math.max(...ys))).toBeCloseTo(63, 0);
 	});
 });
 
@@ -193,23 +205,23 @@ describe("getAheadBoat", () => {
 describe("getTransomLine", () => {
 	it("runs abeam (vertical) through the transom of an east-heading boat", () => {
 		const b = boat("b", 300, 300, 90);
-		const [p1, p2] = getTransomLine(b, 300);
+		const [p1, p2] = getTransomLine(b, 300 / PX_PER_HULL_LENGTH);
 
 		// Midpoint is the transom, ~63px astern of centre (west of x=300).
-		expect((p1.x + p2.x) / 2).toBeCloseTo(237, 1);
-		expect((p1.y + p2.y) / 2).toBeCloseTo(300, 1);
+		expect(px((p1.x + p2.x) / 2)).toBeCloseTo(237, 0);
+		expect(px((p1.y + p2.y) / 2)).toBeCloseTo(300, 0);
 		// Each endpoint is 300px from the transom → line length 600.
-		expect(Math.hypot(p2.x - p1.x, p2.y - p1.y)).toBeCloseTo(600, 1);
+		expect(px(Math.hypot(p2.x - p1.x, p2.y - p1.y))).toBeCloseTo(600, 0);
 		// Abeam of an east-heading boat is vertical: both ends share x.
 		expect(p1.x).toBeCloseTo(p2.x, 1);
 	});
 
 	it("runs abeam (horizontal) through the transom of a north-heading boat", () => {
 		const b = boat("b", 300, 300, 0);
-		const [p1, p2] = getTransomLine(b, 300);
+		const [p1, p2] = getTransomLine(b, 300 / PX_PER_HULL_LENGTH);
 
 		// Transom is ~63px astern of centre (south of y=300).
-		expect((p1.y + p2.y) / 2).toBeCloseTo(363, 1);
+		expect(px((p1.y + p2.y) / 2)).toBeCloseTo(363, 0);
 		// Abeam of a north-heading boat is horizontal: both ends share y.
 		expect(p1.y).toBeCloseTo(p2.y, 1);
 	});
@@ -222,14 +234,14 @@ describe("boatPerimeterDistance", () => {
 		// 200 − 77.7 ≈ 122.3px (a 100px-wide bounding box would report 100px).
 		const a = boat("a", 300, 150, 90);
 		const b = boat("b", 300, 350, 90);
-		expect(boatPerimeterDistance(a, b)).toBeCloseTo(122.34, 0);
+		expect(px(boatPerimeterDistance(a, b))).toBeCloseTo(122.34, 0);
 	});
 
 	it("is zero when hulls are just touching", () => {
 		// Centres one beam (~77.7px) apart → the hull edges just meet.
 		const a = boat("a", 300, 150, 90);
 		const b = boat("b", 300, 150 + 77.66, 90);
-		expect(boatPerimeterDistance(a, b)).toBeCloseTo(0, 0);
+		expect(px(boatPerimeterDistance(a, b))).toBeCloseTo(0, 0);
 	});
 
 	it("returns a negative value equal to the overlap when hulls intersect", () => {
@@ -238,13 +250,16 @@ describe("boatPerimeterDistance", () => {
 		const b = boat("b", 300, 220, 90);
 		const d = boatPerimeterDistance(a, b);
 		expect(d).toBeLessThan(0);
-		expect(d).toBeCloseTo(-7.66, 1);
+		expect(px(d)).toBeCloseTo(-7.66, 0);
 	});
 });
 
 describe("hull-derived rule distances", () => {
-	it("derives two hull lengths from the real hull (~323px), not the 100×200 box", () => {
-		expect(TWO_HULL_LENGTHS).toBeCloseTo(323, 0);
+	it("uses the real hull as the world unit: one hull length, two hull lengths", () => {
+		expect(HULL_ACTUAL_LENGTH).toBeCloseTo(1, 10);
+		expect(TWO_HULL_LENGTHS).toBeCloseTo(2, 10);
+		expect(HULL_FOREMOST_OFFSET).toBeCloseTo(0.61, 2);
+		expect(HULL_AFTERMOST_OFFSET).toBeCloseTo(0.39, 2);
 	});
 
 	it("Rule 17 stops applying beyond the tightened two-hull-lengths cutoff", () => {
@@ -500,5 +515,120 @@ describe("evaluate — Rule 17 (On the Same Tack; Proper Course)", () => {
 		const result = evaluate(a, b, WIND_NORTH, {establishedLeewardB: true});
 
 		expect(result.rules.find((r) => r.ruleNumber === 17)?.applicable).toBe(false);
+	});
+});
+
+describe("computeMeetingFacts (two-boat wrapper)", () => {
+	it("keeps the caller's boat order and matches computeFacts semantics", () => {
+		const a = boat("a", 300, 350, 90);
+		const b = boat("b", 300, 150, 90);
+		const {facts} = computeMeetingFacts(a, b, WIND_NORTH);
+		expect(facts.overlapped).toBe(true);
+		expect(facts.windwardIsA).toBe(false); // b is north = windward
+	});
+});
+
+describe("computeFacts", () => {
+	function threeBoatWorld(): WorldState {
+		return {
+			...createDefaultWorld(),
+			boats: [
+				boatPx("alpha", 300, 150, 90), // port tack, abeam of bravo
+				boatPx("bravo", 300, 350, 90), // port tack, leeward of alpha
+				boatPx("charlie", 1200, 250, 270), // starboard tack, far away
+			],
+		};
+	}
+
+	it("yields one entry per boat and one per pair", () => {
+		const facts = computeFacts(threeBoatWorld());
+		expect(Object.keys(facts.boats).sort()).toEqual(["alpha", "bravo", "charlie"]);
+		expect(Object.keys(facts.pairs).sort()).toEqual(["alpha|bravo", "alpha|charlie", "bravo|charlie"]);
+		expect(pairKey("bravo", "alpha")).toBe("alpha|bravo");
+	});
+
+	it("reports per-boat tack, point of sail and trim", () => {
+		const facts = computeFacts(threeBoatWorld());
+		expect(facts.boats.alpha.tack).toBe("PORT");
+		expect(facts.boats.charlie.tack).toBe("STARBOARD");
+		expect(facts.boats.alpha.pointOfSail).toBe("BEAM_REACH");
+		expect(facts.boats.alpha.sailTrimAngle).toBeCloseTo(45);
+	});
+
+	it("reports per-pair overlap, tack and windward facts", () => {
+		const {pairs} = computeFacts(threeBoatWorld());
+
+		const ab = pairs[pairKey("alpha", "bravo")];
+		expect(ab.a).toBe("alpha");
+		expect(ab.b).toBe("bravo");
+		expect(ab.sameTack).toBe(true);
+		expect(ab.overlapped).toBe(true);
+		expect(ab.windwardIsA).toBe(true); // alpha is north of bravo
+		expect(ab.collided).toBe(false);
+		expect(px(ab.separation)).toBeCloseTo(122.34, 0);
+
+		const ac = pairs[pairKey("alpha", "charlie")];
+		expect(ac.sameTack).toBe(false);
+		expect(ac.overlapped).toBeNull();
+		expect(ac.windwardIsA).toBeNull();
+		expect(ac.clearAheadIsA).toBeNull();
+	});
+
+	it("falls back to the previous tack while a boat is head-to-wind", () => {
+		const world: WorldState = {...createDefaultWorld(), boats: [boatPx("a", 300, 300, 0)]};
+		expect(computeFacts(world).boats.a.tack).toBeNull();
+		expect(computeFacts(world, {a: "PORT"}).boats.a.tack).toBe("PORT");
+	});
+});
+
+describe("worldReducer", () => {
+	it("builds the default world from the old pixel scene", () => {
+		const world = createDefaultWorld();
+		expect(world.boats.map((b) => b.id)).toEqual(["boat1", "boat2"]);
+		expect(px(world.boats[0].x)).toBeCloseTo(300, 6);
+		expect(px(world.boats[0].y)).toBeCloseTo(150, 6);
+		expect(px(world.boats[1].y)).toBeCloseTo(350, 6);
+		expect(world.boats[0].heading).toBe(90);
+		expect(world.wind.direction).toBe(0);
+		expect(world.race.phase).toBe("started");
+		expect(world.marks).toEqual([]);
+		expect(world.course.legs).toEqual([]);
+	});
+
+	it("moves and rotates only the targeted boat, immutably", () => {
+		const before = createDefaultWorld();
+		const moved = worldReducer(before, {type: "moveBoat", id: "boat1", x: 5, y: 6});
+		expect(moved.boats[0]).toMatchObject({x: 5, y: 6});
+		expect(moved.boats[1]).toBe(before.boats[1]);
+		expect(before.boats[0].x).not.toBe(5);
+
+		const rotated = worldReducer(moved, {type: "rotateBoat", id: "boat2", heading: 200});
+		expect(rotated.boats[1].heading).toBe(200);
+		expect(rotated.boats[0].heading).toBe(90);
+	});
+
+	it("sets wind, toggles tacking and sets the next leg", () => {
+		let world = createDefaultWorld();
+		world = worldReducer(world, {type: "setWind", direction: 135});
+		expect(world.wind.direction).toBe(135);
+		world = worldReducer(world, {type: "toggleTacking", id: "boat2"});
+		expect(world.boats[1].tacking).toBe(true);
+		world = worldReducer(world, {type: "toggleTacking", id: "boat2"});
+		expect(world.boats[1].tacking).toBe(false);
+		world = worldReducer(world, {type: "setNextLeg", id: "boat1", legIndex: 2});
+		expect(world.boats[0].nextLegIndex).toBe(2);
+	});
+
+	it("adds boats with fresh ids, removes boats and loads scenarios", () => {
+		let world = createDefaultWorld();
+		world = worldReducer(world, {type: "addBoat"});
+		expect(world.boats.map((b) => b.id)).toEqual(["boat1", "boat2", "boat3"]);
+		world = worldReducer(world, {type: "addBoat", boat: {id: "boat3"}}); // duplicate id ignored
+		expect(world.boats).toHaveLength(3);
+		world = worldReducer(world, {type: "removeBoat", id: "boat2"});
+		expect(world.boats.map((b) => b.id)).toEqual(["boat1", "boat3"]);
+
+		const scenario = {...createDefaultWorld(), wind: {direction: 90}};
+		expect(worldReducer(world, {type: "loadScenario", world: scenario})).toBe(scenario);
 	});
 });

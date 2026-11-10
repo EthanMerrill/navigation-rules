@@ -350,7 +350,7 @@ const RULE_REGISTRY: RuleDefinition[] = [
 		laymanExplanation: "Both boats must always try not to collide. When they get close together, avoiding contact becomes everyone's responsibility — even the boat with right of way has to act if a crash is about to happen.",
 		priority: 0,
 		applies: (_a, _b, _w, f) => f.collided || f.separation < CONTACT_RISK_DISTANCE,
-		detail: (_a, _b, _w, f) => (f.collided ? `Collision — the hulls overlap by ${Math.round(-f.separation)}px. Both boats must avoid contact.` : `Boats are ${Math.round(f.separation)}px apart — both must act to avoid contact.`),
+		detail: (_a, _b, _w, f) => (f.collided ? `Collision — the hulls overlap by ${(-f.separation).toFixed(2)} hull lengths. Both boats must avoid contact.` : `Boats are ${f.separation.toFixed(2)} hull lengths apart — both must act to avoid contact.`),
 	},
 	{
 		ruleNumber: 15,

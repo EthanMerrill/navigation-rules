@@ -2,19 +2,22 @@
  * Facts Engine — the "Definitions" layer of the Racing Rules of Sailing
  * (2025–2028 edition), Part 2.
  *
- * This module computes the GEOMETRIC + SITUATIONAL FACTS about a two-boat
- * meeting: tack, point of sail, clear astern / clear ahead, overlap,
+ * This module computes the GEOMETRIC + SITUATIONAL FACTS about the boats in a
+ * world (per boat and per pair of boats): tack, point of sail, clear astern / clear ahead, overlap,
  * windward / leeward, and hull separation. It also owns the shared types and
  * geometry helpers those facts depend on. It contains NO rule logic — the rule
- * predicates in `rulesEngine.ts` consume these facts via `computeMeetingFacts`.
+ * predicates in `rulesEngine.ts` consume these facts via `computeFacts` (or the
+ * temporary two-boat wrapper `computeMeetingFacts`).
  *
- * Both `evaluate` (the rules engine) and the React state hook call
- * `computeMeetingFacts`, so the two can never drift on "what is the situation?".
+ * Both `evaluate` (the rules engine) and the React state hook call the same
+ * facts functions, so the two can never drift on "what is the situation?".
  *
  * ---------------------------------------------------------------------------
- * Coordinate & heading conventions (screen space)
+ * Coordinate & heading conventions (world space)
  * ---------------------------------------------------------------------------
- * - Positions are in pixels, with the origin at the top-left of the play area.
+ * - Positions and distances are in WORLD UNITS = hull lengths (1 unit is one
+ *   boat's actual bow-to-stern length), origin at the top-left of the play
+ *   area. Pixels live only in `view/scale.ts`.
  * - +x points right, +y points DOWN (standard CSS/screen coordinates).
  * - A boat's `heading` (θ) is in DEGREES: 0° points up (north), and angles
  *   increase CLOCKWISE (90° = right/east, 180° = down/south, 270° = left/west).
@@ -27,6 +30,8 @@
  *   wind-source vector  w(W) = (sin W, −cos W)   // points UPWIND (toward source)
  */
 
+import type {BoatState, WindState, WorldState} from "../model/world";
+
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -37,23 +42,7 @@ export type Tack = "PORT" | "STARBOARD";
 /** A boat's point of sail — its direction relative to the wind. */
 export type PointOfSail = "HEAD_TO_WIND" | "CLOSE_HAULED" | "CLOSE_REACH" | "BEAM_REACH" | "BROAD_REACH" | "RUNNING";
 
-/** Geometric + situational state of a single boat. Position is the boat's CENTER. */
-export interface BoatState {
-	id: string;
-	/** Center x position, in pixels. */
-	x: number;
-	/** Center y position, in pixels. */
-	y: number;
-	/** Heading in degrees (0 = up, clockwise positive). */
-	heading: number;
-	/** True while the boat is in the act of tacking (passed head-to-wind, Rule 13). */
-	tacking: boolean;
-}
-
-/** Wind state. `direction` is where the wind blows FROM, in degrees. */
-export interface WindState {
-	direction: number;
-}
+export type {BoatState, WindState};
 
 /** Shared geometric facts about a two-boat meeting, used by rule predicates. */
 export interface MeetingFacts {
@@ -66,7 +55,7 @@ export interface MeetingFacts {
 	clearAheadIsA: boolean | null;
 	/**
 	 * Shortest distance between the two boats' hull perimeters (outer edges), in
-	 * pixels. Negative when the hulls overlap — see `collided` (Rule 14).
+	 * hull lengths. Negative when the hulls overlap — see `collided` (Rule 14).
 	 */
 	separation: number;
 	/** True when the hulls overlap (perimeter separation is negative) — a collision. */
@@ -79,23 +68,41 @@ export interface PrevTacks {
 	b: Tack | null;
 }
 
+/** Facts about a single boat, independent of any other boat. */
+export interface BoatFacts {
+	/** Current tack; falls back to the previous tack while head-to-wind, else null. */
+	tack: Tack | null;
+	pointOfSail: PointOfSail;
+	/** Boom angle off the centreline, in degrees. */
+	sailTrimAngle: number;
+}
+
+/**
+ * Facts about one pair of boats. `a` and `b` are the two ids in sorted order
+ * (see `pairKey`); the `...IsA` fields refer to boat `a`. Same semantics as
+ * `MeetingFacts`.
+ */
+export interface PairFacts extends MeetingFacts {
+	a: string;
+	b: string;
+}
+
+/** All facts about a world: one entry per boat and one per pair of boats. */
+export interface WorldFacts {
+	boats: Record<string, BoatFacts>;
+	/** Keyed by `pairKey(idA, idB)`. */
+	pairs: Record<string, PairFacts>;
+}
+
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
 
 /**
- * Hull dimensions of the rendered 100×200 wrapper, used ONLY by `MoveableBoat`
- * to position the boat SVG. Rule distances derive from the real hull outline
- * instead — see `HULL_ACTUAL_LENGTH` / `HULL_AFTERMOST_OFFSET` in the geometry
- * section.
+ * Separation below which boats are at risk of contact (Rule 14), in hull
+ * lengths (≈ 300px at the default view scale).
  */
-export const HULL_LENGTH = 200;
-
-/** Beam (width) in pixels of the rendered boat. */
-export const BEAM = 100;
-
-/** Separation below which boats are at risk of contact (Rule 14). */
-export const CONTACT_RISK_DISTANCE = 300;
+export const CONTACT_RISK_DISTANCE = 300 / 161.5;
 
 /** How long a transient limitation rule (15, 16) stays applied after it fires. */
 export const LIMITATION_RULE_COOLDOWN_MS = 10000;
@@ -274,7 +281,7 @@ export function isSailingBelowProperCourse(heading: number, properCourse: number
  * drawn abeam (perpendicular) through the aftermost point of `ahead`'s hull.
  *
  * The aftermost point is the flat transom of the real hull outline —
- * `HULL_AFTERMOST_OFFSET` (≈63px) abaft centre, NOT the `HULL_LENGTH` halfway
+ * `HULL_AFTERMOST_OFFSET` (≈0.39 hull lengths) abaft centre, NOT the halfway
  * point of a centred box. `astern` is clear astern when the projection of
  * (astern − ahead) onto ahead's heading is less than −HULL_AFTERMOST_OFFSET.
  */
@@ -304,7 +311,7 @@ export function getWindwardBoat(a: BoatState, b: BoatState, wind: WindState): "a
 	return aUpwind > bUpwind ? "a" : "b";
 }
 
-/** Centre-to-centre distance between two boats, in pixels. */
+/** Centre-to-centre distance between two boats, in hull lengths. */
 export function distanceBetween(a: BoatState, b: BoatState): number {
 	return Math.hypot(a.x - b.x, a.y - b.y);
 }
@@ -313,7 +320,7 @@ export function distanceBetween(a: BoatState, b: BoatState): number {
 // Hull geometry & perimeter separation (Rule 14)
 // ---------------------------------------------------------------------------
 
-/** A point in screen coordinates. */
+/** A point in world coordinates (hull lengths). */
 export type Point = {x: number; y: number};
 
 /** A cubic Bézier segment: two control points and the end point, in SVG coords. */
@@ -366,17 +373,18 @@ function cubicPoint(p0: Point, seg: CubicSegment, t: number): Point {
 }
 
 /**
- * Build the hull outline in the boat's LOCAL frame (offsets from the boat's
+ * Build the hull outline in the boat's LOCAL frame, in SVG pixels (offsets from the boat's
  * centre `(x, y)`, before rotation): x = lateral (+ = starboard), y = fore-aft
  * (+ = toward the bow).
  *
  * The rendered image is 80×164 inside a 100×200 wrapper, horizontally centred
- * (10px inset each side) and top-aligned, so an SVG point `(sx, sy)` maps via
+ * (10px inset each side) and top-aligned, so (in SVG pixels) a point `(sx, sy)` maps via
  *   lateral = sx − 40       forward = 100 − sy
  * giving a hull ~80px wide and ~161px long (bow tip ≈ 98.5px ahead of centre,
- * transom ≈ 63px astern, so the hull sits slightly forward of centre).
+ * transom ≈ 63px astern, so the hull sits slightly forward of centre). The
+ * caller scales the result into hull lengths.
  */
-function buildHullOutlineLocal(): Point[] {
+function buildHullOutlinePx(): Point[] {
 	const toLocal = (sx: number, sy: number): Point => ({x: sx - 40, y: 100 - sy});
 	const samplesPerSegment = 3;
 	const points: Point[] = [toLocal(HULL_SVG_OUTLINE.bow.x, HULL_SVG_OUTLINE.bow.y)];
@@ -410,27 +418,35 @@ function buildHullOutlineLocal(): Point[] {
 	return points;
 }
 
-/** The sampled hull outline in the local frame, computed once at module load. */
-const HULL_OUTLINE_LOCAL: Point[] = buildHullOutlineLocal();
+const HULL_OUTLINE_PX: Point[] = buildHullOutlinePx();
+
+/** Bow-to-transom length of the SVG hull in its own pixel units (≈161.5). */
+const HULL_LENGTH_SVG_PX = Math.max(...HULL_OUTLINE_PX.map((p) => p.y)) - Math.min(...HULL_OUTLINE_PX.map((p) => p.y));
+
+/**
+ * The sampled hull outline in the local frame, in WORLD UNITS (hull lengths):
+ * the SVG outline scaled once at module load so the hull is exactly 1 long.
+ */
+const HULL_OUTLINE_LOCAL: Point[] = HULL_OUTLINE_PX.map((p) => ({x: p.x / HULL_LENGTH_SVG_PX, y: p.y / HULL_LENGTH_SVG_PX}));
 
 // Real hull extents, derived from the SVG outline — the single source of truth
-// for rule distances (local frame: +y is toward the bow).
-/** Distance from centre to the bow tip (≈98.5px). */
+// for rule distances (local frame: +y is toward the bow), in hull lengths.
+/** Distance from centre to the bow tip (≈0.61). */
 export const HULL_FOREMOST_OFFSET = Math.max(...HULL_OUTLINE_LOCAL.map((p) => p.y));
 
-/** Distance from centre to the aftermost point — the flat transom (≈63px). */
+/** Distance from centre to the aftermost point — the flat transom (≈0.39). */
 export const HULL_AFTERMOST_OFFSET = -Math.min(...HULL_OUTLINE_LOCAL.map((p) => p.y));
 
-/** Actual bow-to-stern hull length, bow tip to transom (≈161.5px). */
+/** Actual bow-to-stern hull length — the world unit, so exactly 1. */
 export const HULL_ACTUAL_LENGTH = HULL_FOREMOST_OFFSET + HULL_AFTERMOST_OFFSET;
 
-/** Two hull lengths (Rule 17), derived from the real hull (≈323px). */
+/** Two hull lengths (Rule 17), exactly 2 world units. */
 export const TWO_HULL_LENGTHS = 2 * HULL_ACTUAL_LENGTH;
 
 /**
- * The boat's hull outline, in world (screen) coordinates, as a polygon whose
+ * The boat's hull outline, in world coordinates (hull lengths), as a polygon whose
  * vertices follow the actual pointed-bow hull silhouette from
- * `PrototypeBoat.svg` (NOT the `BEAM × HULL_LENGTH` bounding box). The local
+ * `PrototypeBoat.svg` (NOT the 100×200 wrapper bounding box). The local
  * outline is placed at the boat's centre and rotated by its heading.
  */
 export function getHullVertices(boat: BoatState): Point[] {
@@ -511,7 +527,7 @@ function projectOntoAxis(vertices: Point[], axisX: number, axisY: number): {min:
 
 /**
  * Separating-Axis overlap test for two convex polygons. Returns the penetration
- * depth (in pixels) along the axis of least overlap when the polygons overlap,
+ * depth (in hull lengths) along the axis of least overlap when the polygons overlap,
  * or `null` when they are disjoint.
  */
 function polygonPenetrationDepth(a: Point[], b: Point[]): number | null {
@@ -542,7 +558,7 @@ function polygonPenetrationDepth(a: Point[], b: Point[]): number | null {
 
 /**
  * The shortest distance between the two boats' hull PERIMETERS (outer edges),
- * in pixels — not the centre-to-centre distance.
+ * in hull lengths — not the centre-to-centre distance.
  *
  * When the hulls are disjoint this is the gap between their closest points.
  * When the hulls overlap, the value is NEGATIVE: its magnitude is the
@@ -607,9 +623,9 @@ export function getAheadBoat(a: BoatState, b: BoatState): "a" | "b" {
  * The "abeam line" through a boat's aftermost point (the flat transom) — the
  * boundary the Racing Rules use to define Clear Astern / Clear Ahead vs
  * Overlap. The line runs perpendicular to the boat's heading and extends
- * `extent` pixels to each side (port and starboard) of the transom.
+ * `extent` hull lengths to each side (port and starboard) of the transom.
  *
- * Returns the two endpoints in world (screen) coordinates.
+ * Returns the two endpoints in world coordinates.
  */
 export function getTransomLine(boat: BoatState, extent: number): [Point, Point] {
 	const fwd = headingVector(boat.heading);
@@ -623,31 +639,32 @@ export function getTransomLine(boat: BoatState, extent: number): [Point, Point] 
 }
 
 // ---------------------------------------------------------------------------
-// Meeting facts
+// World facts
 // ---------------------------------------------------------------------------
 
-/**
- * Compute the shared geometric + situational facts about a two-boat meeting in
- * a single place — the "Definitions" layer of the Racing Rules (tack, clear
- * astern / clear ahead, overlap, leeward / windward, separation). Rule
- * predicates consume these facts; no rule logic lives here. `evaluate` and the
- * React hook both call this so the two can never drift on "what is the
- * situation?".
- */
-export function computeMeetingFacts(
-	a: BoatState,
-	b: BoatState,
-	wind: WindState,
-	prevTacks?: PrevTacks,
-): {aTack: Tack | null; bTack: Tack | null; facts: MeetingFacts} {
-	const aTack = getTack(a.heading, wind.direction) ?? prevTacks?.a ?? null;
-	const bTack = getTack(b.heading, wind.direction) ?? prevTacks?.b ?? null;
+/** Key of a pair of boats: the two ids sorted and joined with "|". */
+export function pairKey(idA: string, idB: string): string {
+	return idA < idB ? `${idA}|${idB}` : `${idB}|${idA}`;
+}
 
+/** Facts about one boat. Falls back to `prevTack` while the boat is head-to-wind. */
+function computeBoatFacts(boat: BoatState, wind: WindState, prevTack?: Tack | null): BoatFacts {
+	return {
+		tack: getTack(boat.heading, wind.direction) ?? prevTack ?? null,
+		pointOfSail: getPointOfSail(boat.heading, wind.direction),
+		sailTrimAngle: getSailTrimAngle(boat.heading, wind.direction),
+	};
+}
+
+/** Facts about the meeting of boats `a` and `b`, given their (resolved) tacks. */
+function computePairFacts(a: BoatState, b: BoatState, aTack: Tack | null, bTack: Tack | null, wind: WindState): PairFacts {
 	const sameTack = areOnSameTack(aTack, bTack);
 	const overlapped = sameTack ? isOverlapped(a, b) : null;
 	const separation = boatPerimeterDistance(a, b);
 
-	const facts: MeetingFacts = {
+	return {
+		a: a.id,
+		b: b.id,
 		sameTack,
 		overlapped,
 		windwardIsA: sameTack && overlapped ? getWindwardBoat(a, b, wind) === "a" : null,
@@ -655,6 +672,46 @@ export function computeMeetingFacts(
 		separation,
 		collided: separation < 0,
 	};
+}
 
+/**
+ * Compute the shared geometric + situational facts about every boat and every
+ * pair of boats in the world — the "Definitions" layer of the Racing Rules
+ * (tack, clear astern / clear ahead, overlap, leeward / windward, separation).
+ * Rule predicates consume these facts; no rule logic lives here.
+ *
+ * `prevTacks` (boat id → last known tack) avoids flicker while a boat is
+ * head-to-wind. Within each pair, `a` is the boat with the smaller id.
+ */
+export function computeFacts(world: WorldState, prevTacks?: Record<string, Tack | null>): WorldFacts {
+	const boats: Record<string, BoatFacts> = {};
+	for (const boat of world.boats) {
+		boats[boat.id] = computeBoatFacts(boat, world.wind, prevTacks?.[boat.id]);
+	}
+
+	const pairs: Record<string, PairFacts> = {};
+	for (let i = 0; i < world.boats.length; i++) {
+		for (let j = i + 1; j < world.boats.length; j++) {
+			const [a, b] = world.boats[i].id < world.boats[j].id ? [world.boats[i], world.boats[j]] : [world.boats[j], world.boats[i]];
+			pairs[pairKey(a.id, b.id)] = computePairFacts(a, b, boats[a.id].tack, boats[b.id].tack, world.wind);
+		}
+	}
+
+	return {boats, pairs};
+}
+
+/**
+ * Two-boat convenience wrapper kept for `evaluate` (which stays two-boat until
+ * Phase 2). Unlike `computeFacts`, `a` and `b` keep the caller's order.
+ */
+export function computeMeetingFacts(
+	a: BoatState,
+	b: BoatState,
+	wind: WindState,
+	prevTacks?: PrevTacks,
+): {aTack: Tack | null; bTack: Tack | null; facts: MeetingFacts} {
+	const aTack = computeBoatFacts(a, wind, prevTacks?.a).tack;
+	const bTack = computeBoatFacts(b, wind, prevTacks?.b).tack;
+	const {a: _a, b: _b, ...facts} = computePairFacts(a, b, aTack, bTack, wind);
 	return {aTack, bTack, facts};
 }

@@ -1,7 +1,9 @@
-import {BoatState, getAheadBoat, getTransomLine} from "../rules/rulesEngine";
+import type {BoatState} from "../model/world";
+import {getAheadBoat, getTransomLine} from "../rules/rulesEngine";
+import {toPx} from "../view/scale";
 
-/** How far the abeam/transom line extends to each side of the boat, in px. */
-const TRANSOM_LINE_EXTENT = 300;
+/** How far the abeam/transom line extends to each side of the boat, in hull lengths. */
+const TRANSOM_LINE_EXTENT = 300 / 161.5;
 
 export interface TransomLineOverlayProps {
 	boatA: BoatState;
@@ -18,7 +20,9 @@ export interface TransomLineOverlayProps {
  */
 const TransomLineOverlay = ({boatA, boatB, overlapped}: TransomLineOverlayProps) => {
 	const aheadBoat = getAheadBoat(boatA, boatB) === "a" ? boatA : boatB;
-	const [p1, p2] = getTransomLine(aheadBoat, TRANSOM_LINE_EXTENT);
+	const [w1, w2] = getTransomLine(aheadBoat, TRANSOM_LINE_EXTENT);
+	const p1 = toPx(w1);
+	const p2 = toPx(w2);
 
 	// The line is a horizontal segment centred on the transom; rotate it by the
 	// boat's heading so it lies abeam (perpendicular to the centreline). CSS

@@ -1,12 +1,14 @@
 import React from "react";
 import MoveableComponent from "./MoveableComponent";
 import PrototypeBoat from "../assets/PrototypeBoat.svg";
-import {BoatState, BoatRuleView, BEAM, HULL_LENGTH, PointOfSail} from "../rules/rulesEngine";
+import type {BoatState} from "../model/world";
+import {BoatRuleView, PointOfSail} from "../rules/rulesEngine";
+import type {WorldAction} from "../state/worldReducer";
+import {centerFromWrapperOrigin, wrapperOrigin} from "../view/scale";
 
 export interface ImoveableBoatProps {
 	boatState: BoatState;
-	setBoatState: React.Dispatch<React.SetStateAction<BoatState>>;
-	moveRef: React.RefObject<HTMLDivElement | null>;
+	dispatch: React.Dispatch<WorldAction>;
 	text: string;
 	boatRuleView: BoatRuleView;
 }
@@ -42,11 +44,13 @@ const POINT_OF_SAIL_LABELS: Record<PointOfSail, string> = {
 };
 
 const MoveableBoat = (props: ImoveableBoatProps) => {
-	const {boatState, setBoatState, moveRef, text, boatRuleView} = props;
+	const {boatState, dispatch, text, boatRuleView} = props;
+	const moveRef = React.useRef<HTMLDivElement>(null);
 
 	// The boat's stored position is its center, but the wrapper is positioned by
-	// its top-left corner, so offset by half the beam/length.
-	const transform = `translate(${boatState.x - BEAM / 2}px, ${boatState.y - HULL_LENGTH / 2}px) rotate(${boatState.heading}deg)`;
+	// its top-left corner; `wrapperOrigin` converts world units to that pixel offset.
+	const origin = wrapperOrigin(boatState);
+	const transform = `translate(${origin.x}px, ${origin.y}px) rotate(${boatState.heading}deg)`;
 
 	const sailPath = boatRuleView.tack === "PORT" ? PORT_SAIL_PATH : STARBOARD_SAIL_PATH;
 
@@ -165,14 +169,11 @@ const MoveableBoat = (props: ImoveableBoatProps) => {
 			</div>
 			<MoveableComponent
 				moveRef={moveRef}
-				onDrag={(x, y) =>
-					setBoatState((prev) => ({
-						...prev,
-						x: x + BEAM / 2,
-						y: y + HULL_LENGTH / 2,
-					}))
-				}
-				onRotate={(heading) => setBoatState((prev) => ({...prev, heading}))}
+				onDrag={(x, y) => {
+					const center = centerFromWrapperOrigin({x, y});
+					dispatch({type: "moveBoat", id: boatState.id, x: center.x, y: center.y});
+				}}
+				onRotate={(heading) => dispatch({type: "rotateBoat", id: boatState.id, heading})}
 			/>
 		</div>
 	);
