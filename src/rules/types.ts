@@ -13,7 +13,7 @@ import type {PairFacts, PointOfSail, Tack, WorldFacts} from "./factsEngine";
 export type RuleId = string;
 
 /** What a rule requires of a boat. */
-export type ObligationKind = "keepClear" | "giveRoom" | "giveMarkRoom" | "avoidContact" | "notAboveProperCourse" | "notBelowProperCourse" | "sailNoFartherFromMark";
+export type ObligationKind = "keepClear" | "giveRoom" | "giveMarkRoom" | "avoidContact" | "notAboveProperCourse" | "notBelowProperCourse" | "sailNoFartherFromMark" | "notCauseAboveCloseHauled";
 
 /** A single duty imposed on `boat` (optionally owed `towards` another boat) by a rule. */
 export interface Obligation {

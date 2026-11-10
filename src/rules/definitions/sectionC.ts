@@ -6,7 +6,8 @@
  * - 18.2(a): overlapped, the outside boat gives the inside boat mark-room.
  * - 18.2(b): the situation when the first boat reached the zone decides who gives mark-room; suspends 18.2(a).
  * - 18.2(c): as 18.2(b), once the overlap has changed since zone entry; suspends 18.2(a).
- * - 18.3: tacking in the zone to windward of a starboard-tack boat; suspends 10, 11, 12 and 18.2 for the pair.
+ * - 18.3: a limitation on a boat that tacked in the zone: she must not force a starboard-tack boat above close-hauled and
+ *   gives her mark-room if she becomes overlapped inside. It suspends nothing: Rules 10-12 still decide right of way.
  * - 18.4: gybing at a mark; limits the inside right-of-way boat.
  *
  * 18.1 (applicability) is `rule18Applies` in `markRoom.ts`; 18.2(d) (release of the
@@ -80,7 +81,6 @@ export const SECTION_C_RULES: RuleDefinition[] = [
 		part: 2,
 		section: "C",
 		scope: "pair",
-		suspends: ["10", "11", "12", "18.2a", "18.2b", "18.2c"],
 		evaluate: onPair((ctx) =>
 			perMark(ctx, (mark) => {
 				if (mark.roundingSide !== "port") return [];
@@ -97,8 +97,8 @@ export const SECTION_C_RULES: RuleDefinition[] = [
 						ruleId: "18.3",
 						boat: tacker.id,
 						towards: other.id,
-						kind: "keepClear",
-						detail: `Rule 18.3 — ${tacker.id} tacked from port to starboard in the zone of ${mark.id} and is fetching it; she must not make ${other.id}, who has stayed on starboard tack, sail above close-hauled.`,
+						kind: "notCauseAboveCloseHauled",
+						detail: `Rule 18.3 — ${tacker.id} tacked from port to starboard in the zone of ${mark.id} and is fetching it; she must not cause ${other.id}, who has stayed on starboard tack, to sail above close-hauled to avoid contact.`,
 					});
 					if (isOverlapped(ctx.pair.a, ctx.pair.b) && insideBoatId(ctx.pair.a, ctx.pair.b, mark) === other.id) {
 						out.push(giveMarkRoom("18.3", tacker, other, `Rule 18.3 — ${other.id} is overlapped inside ${tacker.id} at ${mark.id}, so ${tacker.id} gives her mark-room.`));

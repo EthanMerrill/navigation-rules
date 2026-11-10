@@ -175,10 +175,10 @@ const EVALUABLE_CONTENT: RuleContent[] = [
 		section: "C",
 		evaluable: true,
 		title: "Tacking in the Zone",
-		description: "A boat that tacks in the zone of a mark to be left to port must not make a starboard-tack boat sail above close-hauled, and must give her mark-room if she becomes overlapped inside.",
+		description: "A boat that tacks in the zone of a mark to be left to port must not cause a starboard-tack boat to sail above close-hauled to avoid contact, and must give her mark-room if she becomes overlapped inside.",
 		fullText: "", // TODO: official text of rule 18.3
-		laymanExplanation: "If you tack from port to starboard inside the zone and then fetch the mark, you may not force a boat that has been on starboard tack since entering the zone to luff above close-hauled to avoid you. If that boat ends up overlapped inside you, you must give her room at the mark. While it applies, the ordinary right-of-way rules and rule 18.2 do not decide between the two boats.",
-		note: "Only marks to be left to port are modelled. \"On starboard tack since entering the zone\" is approximated as being on starboard tack in the zone and not having tacked there. \"Fetching\" is a geometric test. While 18.3 applies it suspends 10, 11, 12 and 18.2 for the pair.",
+		laymanExplanation: "If you tack from port to starboard inside the zone and then fetch the mark, you may not force a boat that has been on starboard tack since entering the zone to luff above close-hauled to avoid you. If that boat ends up overlapped inside you, you must give her room at the mark. This is a limitation on the tacking boat only: it does not decide right of way, so rules 10, 11 and 12 still say who keeps clear.",
+		note: "Only marks to be left to port are modelled. \"On starboard tack since entering the zone\" is approximated as being on starboard tack in the zone and not having tacked there. \"Fetching\" is a geometric test. Rule 18.3 suspends no other rule: right of way between the boats is still decided by 10, 11 and 12, and 18.2 may also apply.",
 		noteShort: "Port-rounding marks only; fetching is approximated.",
 	},
 	{

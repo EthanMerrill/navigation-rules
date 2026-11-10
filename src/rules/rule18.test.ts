@@ -145,20 +145,21 @@ describe("Rule 18.3 — tacking in the zone", () => {
 		expect(fired(last(steady.evaluations), "18.3")).toBe(false);
 	});
 
-	it("makes the tacker keep clear and give mark-room once she is fetching, suspending 10/11/12 and 18.2", () => {
+	it("limits the tacker and gives mark-room once she is fetching, without suspending 10, 11 or 12", () => {
 		const {evaluations, memory} = frames();
 		expect(memory!.boats.a.tackedInZoneOf).toBe("m");
 		const e = last(evaluations);
 		expect(fired(e, "18.3")).toBe(true);
 		const mine = e.obligations.filter((o) => o.ruleId === "18.3").map((o) => [o.boat, o.towards, o.kind]);
 		expect(mine).toEqual([
-			["a", "b", "keepClear"],
+			["a", "b", "notCauseAboveCloseHauled"],
 			["a", "b", "giveMarkRoom"],
 		]);
-		for (const id of ["10", "11", "12", "18.2a", "18.2b", "18.2c"]) expect(fired(e, id), id).toBe(false);
-		// The evaluator's right-of-way derivation copes: only the tacker keeps clear.
-		expect(e.pairs["a|b"].rightOfWay).toBe("b");
-		expect(e.pairs["a|b"].decidingRuleId).toBe("18.3");
+		expect(obligationLabels(e.boats.a.obligations)).toContain("Don't force b above close-hauled");
+		// 18.3 is a limitation: it is never the deciding rule and the ordinary rules still apply.
+		expect(e.pairs["a|b"].decidingRuleId).not.toBe("18.3");
+		expect(e.obligations.some((o) => o.ruleId === "18.3" && o.kind === "keepClear")).toBe(false);
+		expect(fired(e, "11") || fired(e, "12")).toBe(true);
 	});
 
 	it("forgets the tack once she leaves the zone", () => {
