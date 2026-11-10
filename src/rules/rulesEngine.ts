@@ -17,3 +17,4 @@ export * from "./content/rrs-2025";
 export * from "./evaluate";
 export * from "./memory";
 export * from "./step";
+export * from "./obstructionFacts";

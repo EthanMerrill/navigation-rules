@@ -36,7 +36,7 @@ export function nextMarkOf(world: WorldState, boat: BoatState): Mark | undefined
 }
 
 /** Shortest distance from any hull vertex of `boat` to the point (`x`, `y`), in hull lengths. */
-function hullDistanceTo(boat: BoatState, x: number, y: number): number {
+export function hullDistanceTo(boat: BoatState, x: number, y: number): number {
 	return Math.min(...getHullVertices(boat).map((v) => Math.hypot(v.x - x, v.y - y)));
 }
 
@@ -110,15 +110,23 @@ export function computeProperCourse(boat: BoatState, world: WorldState, tack: Ta
 }
 
 /**
- * The inside boat of a pair at a mark: the one closer to the mark measured
- * laterally, i.e. perpendicular to the boats' mean heading. Null when they are
- * equally close (within 1e-6 hull lengths). Used everywhere "inside" is needed
- * so every Rule 18 clause agrees.
+ * The inside boat of a pair at a mark: see `insideBoatAt`. Used everywhere
+ * "inside" is needed at a mark so every Rule 18 clause agrees.
+ */
+export function insideBoatId(a: BoatState, b: BoatState, mark: Mark): string | null {
+	return insideBoatAt(a, b, mark);
+}
+
+/**
+ * The inside boat of a pair relative to a point (a mark's centre, an
+ * obstruction's centre): the one closer to it measured laterally, i.e.
+ * perpendicular to the boats' mean heading. Null when they are equally close
+ * (within 1e-6 hull lengths).
  *
  * APPROXIMATION: the RRS "inside" is about the side of the boats' course the
  * mark is on, not a distance; this is a lateral-distance proxy for it.
  */
-export function insideBoatId(a: BoatState, b: BoatState, mark: Mark): string | null {
+export function insideBoatAt(a: BoatState, b: BoatState, point: {x: number; y: number}): string | null {
 	const ua = headingVector(a.heading);
 	const ub = headingVector(b.heading);
 	let mx = ua.x + ub.x;
@@ -131,7 +139,7 @@ export function insideBoatId(a: BoatState, b: BoatState, mark: Mark): string | n
 	// Unit vector perpendicular to the mean heading.
 	const px = -my / norm;
 	const py = mx / norm;
-	const lateral = (boat: BoatState) => Math.abs((mark.x - boat.x) * px + (mark.y - boat.y) * py);
+	const lateral = (boat: BoatState) => Math.abs((point.x - boat.x) * px + (point.y - boat.y) * py);
 	const da = lateral(a);
 	const db = lateral(b);
 	if (Math.abs(da - db) < 1e-6) return null;

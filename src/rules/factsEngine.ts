@@ -33,6 +33,8 @@
 import type {BoatState, WindState, WorldState} from "../model/world";
 import {computeMarkFacts, computeProperCourse} from "./markFacts";
 import type {BoatMarkFacts} from "./markFacts";
+import {computeObstructionFacts} from "./obstructionFacts";
+import type {BoatObstructionFacts} from "./obstructionFacts";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -108,6 +110,8 @@ export interface WorldFacts {
 	pairs: Record<string, PairFacts>;
 	/** Keyed by `markSlotKey(boatId, markId)`: one entry per boat per mark. */
 	marks: Record<string, BoatMarkFacts>;
+	/** Keyed by `obstructionSlotKey(boatId, obstructionId)`: one entry per boat per obstruction. */
+	obstructions: Record<string, BoatObstructionFacts>;
 }
 
 // ---------------------------------------------------------------------------
@@ -712,7 +716,7 @@ export function computeFacts(world: WorldState, prevTacks?: Record<string, Tack 
 		}
 	}
 
-	return {boats, pairs, marks: computeMarkFacts(world)};
+	return {boats, pairs, marks: computeMarkFacts(world), obstructions: computeObstructionFacts(world)};
 }
 
 /**

@@ -79,6 +79,11 @@ export function markSlotKey(boatId: string, markId: string): string {
 	return `${boatId}|${markId}`;
 }
 
+/** Key of a boat×obstruction entry in `WorldFacts.obstructions`: `boatId|obstructionId`. */
+export function obstructionSlotKey(boatId: string, obstructionId: string): string {
+	return `${boatId}|${obstructionId}`;
+}
+
 /** Key of a pair×mark slot in `EngineMemory.pairMarks`: `pairKey|markId`. */
 export function pairMarkKey(pairKey: string, markId: string): string {
 	return `${pairKey}|${markId}`;
