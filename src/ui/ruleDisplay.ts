@@ -8,13 +8,13 @@ import type {PairView, RuleId, RuleState} from "../rules/rulesEngine";
 
 /** Display options for one rule. */
 export interface RuleDisplay {
-	/** For transient limitation rules (15, 16): how long the card stays lit (ms) after the rule fires. */
+	/** For transient limitation rules (15, 16.1, 16.2): how long the card stays lit (ms) after the rule fires. */
 	cooldownMs?: number;
 	/** For rules that always apply (14): only show as applicable when the focus pair is close or has collided. */
 	proximityOnly?: boolean;
 }
 
-/** How long a transient limitation rule (15, 16) stays shown after it fires. */
+/** How long a transient limitation rule (15, 16.1, 16.2) stays shown after it fires. */
 const LIMITATION_RULE_COOLDOWN_MS = 10000;
 
 /**
@@ -27,7 +27,8 @@ export const CONTACT_RISK_DISTANCE = 300 / 161.5;
 export const RULE_DISPLAY: Record<RuleId, RuleDisplay> = {
 	"14": {proximityOnly: true},
 	"15": {cooldownMs: LIMITATION_RULE_COOLDOWN_MS},
-	"16": {cooldownMs: LIMITATION_RULE_COOLDOWN_MS},
+	"16.1": {cooldownMs: LIMITATION_RULE_COOLDOWN_MS},
+	"16.2": {cooldownMs: LIMITATION_RULE_COOLDOWN_MS},
 };
 
 /** Display options for a rule, with defaults for unlisted rules. */

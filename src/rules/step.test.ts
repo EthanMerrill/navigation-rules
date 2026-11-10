@@ -115,7 +115,7 @@ describe("step — Rule 13 derived tacking", () => {
 	});
 });
 
-describe("step — Rule 15 and 16", () => {
+describe("step — Rules 15 and 16", () => {
 	it("fires Rule 15 on exactly the frame right of way changes hands", () => {
 		// s is on starboard tack and p on port, so s has right of way (Rule 10).
 		// Then p turns onto starboard tack, clear ahead of s: s is now astern and must
@@ -130,13 +130,24 @@ describe("step — Rule 15 and 16", () => {
 		expect(evaluations.map((e) => fired(e, "15"))).toEqual([false, false, true, false]);
 	});
 
-	it("fires Rule 16 on the frame the right-of-way boat changes heading by more than 0.5 degrees", () => {
+	it("does not fire Rule 15 when she acquired right of way because only the other boat changed course", () => {
+		// b (starboard tack) has right of way over a (port tack); then b tacks onto port tack behind a,
+		// so a is clear ahead and gains right of way through b's action alone.
+		const a = boat("a", 7, 2, 90);
+		const key = pairKey("a", "b");
+		const {evaluations} = run([worldOf(a, boat("b", 6, 2, 270)), worldOf(a, boat("b", 6, 2, 90))]);
+		expect(evaluations[0].pairs[key].rightOfWay).toBe("b");
+		expect(evaluations[1].pairs[key].rightOfWay).toBe("a");
+		expect(fired(evaluations[1], "15")).toBe(false);
+	});
+
+	it("fires Rule 16.1 on the frame the right-of-way boat changes heading by more than 0.5 degrees", () => {
 		// s (starboard tack) has right of way over p (port tack).
 		const p = boat("p", 2, 2, 90);
 		const s = (heading: number) => boat("s", 8, 2, heading);
 		const {evaluations} = run([worldOf(p, s(270)), worldOf(p, s(270.3)), worldOf(p, s(260)), worldOf(p, s(260))]);
 
-		expect(evaluations.map((e) => fired(e, "16"))).toEqual([false, false, true, false]);
+		expect(evaluations.map((e) => fired(e, "16.1"))).toEqual([false, false, true, false]);
 	});
 });
 
@@ -194,5 +205,36 @@ describe("step — zone-entry memory (Rule 18.2b)", () => {
 		const frames = [315, 350, 2, 20].map((heading) => markWorld({...far("a", 11.5, 12.5), heading}, far("b", 13, 11)));
 		const {memory} = run([apart, ...frames]);
 		expect(memory?.pairMarks[key].released).toBe(true);
+	});
+});
+
+describe("step — Rule 16.2 (bearing away on a beat)", () => {
+	// Wind from the north. s is close-hauled on starboard tack (heading 315); p is close-hauled on port tack
+	// (heading 45) on s's leeward (port) side and abaft her, ducking behind her stern.
+	const p = boat("p", 5.5, 8.5, 45);
+	const s = (heading: number) => boat("s", 5, 5, heading);
+	const rule = (e: RuleEvaluation) => e.obligations.filter((o) => o.ruleId === "16.2").map((o) => [o.boat, o.towards, o.kind]);
+
+	it("fires on the frame the starboard-tack boat bears away, and not while she holds her course", () => {
+		const {evaluations} = run([worldOf(p, s(315)), worldOf(p, s(310)), worldOf(p, s(310))]);
+		expect(evaluations.map((e) => fired(e, "16.2"))).toEqual([false, true, false]);
+		expect(rule(evaluations[1])).toEqual([["s", "p", "notBearAway"]]);
+	});
+
+	it("does not fire when the starboard-tack boat luffs (heads up)", () => {
+		const {evaluations} = run([worldOf(p, s(310)), worldOf(p, s(315))]);
+		expect(fired(evaluations[1], "16.2")).toBe(false);
+	});
+
+	it("does not fire when the port-tack boat is not passing to leeward and abaft her", () => {
+		const ahead = boat("p", 4, 3, 45); // to windward of her path, ahead of s
+		const {evaluations} = run([worldOf(ahead, s(315)), worldOf(ahead, s(310))]);
+		expect(fired(evaluations[1], "16.2")).toBe(false);
+	});
+
+	it("does not fire when the boats are not both on a beat", () => {
+		const reaching = boat("p", 5.5, 8.5, 90); // port tack, beam reach
+		const {evaluations} = run([worldOf(reaching, s(315)), worldOf(reaching, s(310))]);
+		expect(fired(evaluations[1], "16.2")).toBe(false);
 	});
 });

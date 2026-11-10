@@ -5,8 +5,12 @@
  *
  * - Rule 14 (Avoiding Contact): a duty on both boats whenever they meet; broken by a collision.
  *   (How close is "close" for display purposes is UI config, see `ui/ruleDisplay.ts`.)
- * - Rule 15 (Acquiring Right of Way): the new right-of-way boat gives room.
- * - Rule 16 (Changing Course): a right-of-way boat that turns gives room.
+ * - Rule 15 (Acquiring Right of Way): the new right-of-way boat gives room, unless she
+ *   acquired right of way because of the other boat's actions (approximated: only the
+ *   other boat was changing course on the frame right of way changed hands).
+ * - Rule 16.1 (Changing Course): a right-of-way boat that turns gives room.
+ * - Rule 16.2: on a beat to windward, a starboard-tack boat does not bear away when that
+ *   makes a port-tack boat passing to leeward of her change course at once.
  * - Rule 17 (On the Same Tack; Proper Course): a leeward boat that came from astern
  *   does not sail above her proper course. The 2025–2028 edition deleted the old 17.2.
  *   Not applicable before the starting signal (a boat has no proper course then).
@@ -14,9 +18,9 @@
  */
 
 import type {BoatState} from "../../model/world";
-import {TWO_HULL_LENGTHS, isSailingAboveProperCourse} from "../factsEngine";
+import {TWO_HULL_LENGTHS, headingVector, isSailingAboveProperCourse} from "../factsEngine";
 import type {PairContext, RuleDefinition} from "../types";
-import {onPair, otherOf} from "./helpers";
+import {isBeating, onPair, otherOf} from "./helpers";
 
 /** Shared geometry for Rule 17: the windward/leeward boats if 17 could apply to this pair (same tack, overlapped, within two hull lengths). */
 function sameTackOverlapWithinTwoLengths(pair: PairContext): {windward: BoatState; leeward: BoatState} | null {
@@ -51,6 +55,8 @@ export const SECTION_B_RULES: RuleDefinition[] = [
 			const prev = history.prevRightOfWay?.[pair.key];
 			if (!rightOfWay || !prev || prev === rightOfWay) return [];
 			const other = otherOf(pair, rightOfWay);
+			// She acquired right of way because of the other boat's actions: only the other boat was changing course.
+			if (history.changingCourse?.[other.id] && !history.changingCourse[rightOfWay]) return [];
 			return [
 				{
 					ruleId: "15",
@@ -63,7 +69,7 @@ export const SECTION_B_RULES: RuleDefinition[] = [
 		}),
 	},
 	{
-		id: "16",
+		id: "16.1",
 		part: 2,
 		section: "B",
 		scope: "pair",
@@ -73,11 +79,39 @@ export const SECTION_B_RULES: RuleDefinition[] = [
 			const other = otherOf(pair, rightOfWay);
 			return [
 				{
-					ruleId: "16",
+					ruleId: "16.1",
 					boat: rightOfWay,
 					towards: other.id,
 					kind: "giveRoom",
 					detail: `${rightOfWay} is the right-of-way boat and is changing course — it must give room to keep clear.`,
+				},
+			];
+		}),
+	},
+	{
+		id: "16.2",
+		part: 2,
+		section: "B",
+		scope: "pair",
+		needsRightOfWay: true,
+		evaluate: onPair(({pair, facts, history, rightOfWay}) => {
+			if (pair.facts.sameTack || !rightOfWay || !history.bearingAway?.[rightOfWay]) return [];
+			const starboard = rightOfWay === pair.a.id ? pair.a : pair.b;
+			const port = otherOf(pair, starboard.id);
+			if (facts.boats[starboard.id].tack !== "STARBOARD" || facts.boats[port.id].tack !== "PORT") return [];
+			if (!isBeating(facts.boats[starboard.id].pointOfSail) || !isBeating(facts.boats[port.id].pointOfSail)) return [];
+			// The port-tack boat is passing to leeward (astern): on the starboard boat's leeward (port) side and abaft her.
+			const forward = headingVector(starboard.heading);
+			const dx = port.x - starboard.x;
+			const dy = port.y - starboard.y;
+			if (dx * forward.x + dy * forward.y >= 0 || dx * -forward.y + dy * forward.x >= 0) return [];
+			return [
+				{
+					ruleId: "16.2",
+					boat: starboard.id,
+					towards: port.id,
+					kind: "notBearAway",
+					detail: `Rule 16.2 — ${starboard.id} is on starboard tack on a beat and is bearing away while ${port.id}, on port tack, is keeping clear by passing to leeward of her; she must not bear away if ${port.id} must then change course immediately.`,
 				},
 			];
 		}),

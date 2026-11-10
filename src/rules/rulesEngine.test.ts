@@ -377,7 +377,7 @@ describe("evaluate", () => {
 
 		// 11 decides; 14 (hulls ~122px apart, within risk distance) co-applies;
 		// the rest are not applicable, sorted ascending.
-		expect(result.rules.map((r) => r.id)).toEqual(["11", "14", "10", "12", "13", "15", "16", "17", "18.2a", "18.2b", "18.2c", "18.3", "18.4", "19.2b", "19.2c", "20.2", "21"]);
+		expect(result.rules.map((r) => r.id)).toEqual(["11", "14", "10", "12", "13", "15", "16.1", "16.2", "17", "18.2a", "18.2b", "18.2c", "18.3", "18.4", "19.2b", "19.2c", "20.2", "21"]);
 		expect(result.rules[0].deciding).toBe(true);
 		expect(result.rules[0].applicable).toBe(true);
 		// Only one rule should ever be deciding.
@@ -651,16 +651,16 @@ describe("evaluate — Rule 15 (Acquiring Right of Way)", () => {
 	});
 });
 
-describe("evaluate — Rule 16 (Changing Course)", () => {
+describe("evaluate — Rule 16.1 (Changing Course)", () => {
 	it("applies when the right-of-way boat is changing course", () => {
 		const a = boat("a", 300, 200, 90); // port
 		const b = boat("b", 400, 200, 270); // starboard → b stands on
 		const result = evalPair(a, b, WIND_NORTH, {changingCourse: {b: true}});
 
-		const rule16 = result.rules.find((r) => r.id === "16");
+		const rule16 = result.rules.find((r) => r.id === "16.1");
 		expect(rule16?.applicable).toBe(true);
 		expect(rule16?.deciding).toBe(false);
-		expect(duties(result, "b")).toMatchObject([{ruleId: "16", kind: "giveRoom", towards: "a"}]);
+		expect(duties(result, "b")).toMatchObject([{ruleId: "16.1", kind: "giveRoom", towards: "a"}]);
 	});
 
 	it("does not apply when the give-way boat changes course", () => {
@@ -668,7 +668,7 @@ describe("evaluate — Rule 16 (Changing Course)", () => {
 		const b = boat("b", 400, 200, 270);
 		const result = evalPair(a, b, WIND_NORTH, {changingCourse: {a: true}}); // a is give-way
 
-		expect(isApplicable(result, "16")).toBe(false);
+		expect(isApplicable(result, "16.1")).toBe(false);
 	});
 });
 

@@ -67,11 +67,13 @@ export function step(world: WorldState, memory: EngineMemory | null, nowMs: numb
 
 	// (c) History for the evaluator, from last frame's memory.
 	const changingCourse: Record<string, boolean> = {};
+	const bearingAway: Record<string, boolean> = {};
 	for (const boat of world.boats) {
 		const before = prev.boats[boat.id];
 		changingCourse[boat.id] = before !== undefined && headingDelta(boat.heading, before.prevHeading) > COURSE_CHANGE_EPSILON;
+		bearingAway[boat.id] = before !== undefined && getWindAngle(boat.heading, world.wind.direction) - getWindAngle(before.prevHeading, world.wind.direction) > COURSE_CHANGE_EPSILON;
 	}
-	const history: EngineHistory = {prevRightOfWay: {}, changingCourse, leewardFromAstern: {}};
+	const history: EngineHistory = {prevRightOfWay: {}, changingCourse, bearingAway, leewardFromAstern: {}};
 	for (const [key, pair] of Object.entries(prev.pairs)) {
 		history.prevRightOfWay![key] = pair.prevRightOfWay;
 		history.leewardFromAstern![key] = pair.leewardFromAstern;

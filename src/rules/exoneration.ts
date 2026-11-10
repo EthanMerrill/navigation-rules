@@ -2,7 +2,7 @@
  * Exoneration (Rule 21) — a post-pass over the obligations of each pair, run by
  * `evaluate` after the rules have fired and been subject to suspension.
  *
- * When boat X owes room or mark-room to boat Y, any Rule 10-13, 15 or 16
+ * When boat X owes room or mark-room to boat Y, any Rule 10-13, 15, 16.1 or 16.2
  * obligation Y has towards X is marked `exoneratedBy: "21"`: if the two meet in
  * an incident while Y is sailing within that room she is not penalised.
  * Exoneration only protects against a penalty. It leaves `kind` untouched, so it
@@ -15,10 +15,10 @@
 import type {Obligation, RuleId} from "./types";
 
 /** The Section A, B rules a boat entitled to room is exonerated for breaking (Rule 21; rule 31 is not modelled). */
-const EXONERATED_RULES: ReadonlySet<RuleId> = new Set(["10", "11", "12", "13", "15", "16"]);
+const EXONERATED_RULES: ReadonlySet<RuleId> = new Set(["10", "11", "12", "13", "15", "16.1", "16.2"]);
 
 /** Rules whose giveRoom duty is "give room to keep clear", not room or mark-room as such; they never create an entitlement. */
-const NOT_ROOM_SOURCES: ReadonlySet<RuleId> = new Set(["15", "16"]);
+const NOT_ROOM_SOURCES: ReadonlySet<RuleId> = new Set(["15", "16.1"]);
 
 /** An exoneration that was applied, for the Rule 21 card. */
 export interface ExonerationNote {

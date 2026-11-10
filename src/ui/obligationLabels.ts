@@ -12,6 +12,7 @@ export const OBLIGATION_LABELS: Record<ObligationKind, (towards?: string) => str
 	giveMarkRoom: (towards) => (towards ? `Give mark-room to ${towards}` : "Give mark-room"),
 	avoidContact: () => "Avoid contact",
 	notAboveProperCourse: () => "No higher than proper course",
+	notBearAway: (towards) => (towards ? `Don't bear away on ${towards}` : "Don't bear away"),
 	sailNoFartherFromMark: () => "Sail no farther from the mark than needed",
 	tackAsSoonAsPossible: () => "Tack as soon as possible",
 	notCauseAboveCloseHauled: (towards) => (towards ? `Don't force ${towards} above close-hauled` : "Don't force a boat above close-hauled"),

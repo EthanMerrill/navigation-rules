@@ -13,7 +13,7 @@ import type {PairFacts, PointOfSail, Tack, WorldFacts} from "./factsEngine";
 export type RuleId = string;
 
 /** What a rule requires of a boat. */
-export type ObligationKind = "keepClear" | "giveRoom" | "giveMarkRoom" | "avoidContact" | "notAboveProperCourse" | "sailNoFartherFromMark" | "notCauseAboveCloseHauled" | "tackAsSoonAsPossible";
+export type ObligationKind = "keepClear" | "giveRoom" | "giveMarkRoom" | "avoidContact" | "notAboveProperCourse" | "notBearAway" | "sailNoFartherFromMark" | "notCauseAboveCloseHauled" | "tackAsSoonAsPossible";
 
 /** A single duty imposed on `boat` (optionally owed `towards` another boat) by a rule. */
 export interface Obligation {
@@ -41,8 +41,10 @@ export interface Obligation {
 export interface EngineHistory {
 	/** Pair key → boat id that had right of way last evaluation (`null`: none, absent: unseen). */
 	prevRightOfWay?: Record<string, string | null | undefined>;
-	/** Boat id → true while the boat is changing course (Rule 16). */
+	/** Boat id → true while the boat is changing course (Rules 15 and 16.1). */
 	changingCourse?: Record<string, boolean>;
+	/** Boat id → true while the boat is bearing away: her angle to the wind grew by more than 0.5° since last frame (Rule 16.2). */
+	bearingAway?: Record<string, boolean>;
 	/** Pair key → boat id → true when that boat established a leeward overlap from clear astern (Rule 17). */
 	leewardFromAstern?: Record<string, Record<string, boolean>>;
 	/**

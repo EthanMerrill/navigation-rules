@@ -13,7 +13,7 @@ export interface CooldownState {
 }
 
 /**
- * Tracks cooldowns for the transient limitation rules (15 & 16).
+ * Tracks cooldowns for the transient limitation rules (15, 16.1 and 16.2).
  *
  * A cooldown rule becomes "latched" the moment the engine reports it applicable
  * and stays applicable for `cooldownMs` after its last fire. If its condition

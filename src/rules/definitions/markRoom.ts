@@ -9,7 +9,7 @@ import {entitledBoat} from "../markMemory";
 import {markSlotKey, pairMarkKey} from "../memory";
 import type {PairMarkMemory} from "../memory";
 import type {Obligation, PairEvalContext} from "../types";
-import {otherOf} from "./helpers";
+import {isBeating, otherOf} from "./helpers";
 
 /** The boat × mark facts of `boat` at `mark`. */
 export function markFactsOf(ctx: PairEvalContext, boat: BoatState, mark: Mark): BoatMarkFacts {
@@ -40,8 +40,7 @@ export function rule18Applies(ctx: PairEvalContext, mark: Mark): boolean {
 	const ba = ctx.facts.boats[a.id];
 	const bb = ctx.facts.boats[b.id];
 	const oppositeTacks = !pair.sameTack && ba.tack !== null && bb.tack !== null;
-	const beating = (p: string) => p === "CLOSE_HAULED" || p === "HEAD_TO_WIND";
-	return !(oppositeTacks && beating(ba.pointOfSail) && beating(bb.pointOfSail));
+	return !(oppositeTacks && isBeating(ba.pointOfSail) && isBeating(bb.pointOfSail));
 }
 
 /** The marks Rule 18 applies to between this pair. */
