@@ -1,7 +1,7 @@
 import {useEffect, useMemo, useRef, useState} from "react";
 import {motion} from "motion/react";
 import "../styles/styles.css";
-import {RuleEvaluation, RuleState} from "../rules/rulesEngine";
+import {RuleEvaluation, RuleState, compareRuleIds} from "../rules/rulesEngine";
 import {CooldownState, useCooldowns} from "../hooks/useCooldowns";
 import RuleModal from "./RuleModal";
 
@@ -17,15 +17,17 @@ const RulesSidebar = ({evaluation}: RulesSidebarProps) => {
 	// with the inactive rules), but the UI still shows it as active. Re-order so
 	// it stays in the active group, at the bottom of the active rules.
 	const orderedRules = useMemo(() => {
-		const isActive = (rule: RuleState) => rule.applicable || cooldowns[rule.ruleNumber]?.active === true;
-		const byNumber = (a: RuleState, b: RuleState) => a.ruleNumber - b.ruleNumber;
+		const isActive = (rule: RuleState) => rule.applicable || cooldowns[rule.id]?.active === true;
+		const byId = (a: RuleState, b: RuleState) => compareRuleIds(a.id, b.id);
 
 		const deciding = evaluation.rules.filter((rule) => rule.deciding);
-		const active = evaluation.rules.filter((rule) => !rule.deciding && isActive(rule)).sort(byNumber);
-		const inactive = evaluation.rules.filter((rule) => !rule.deciding && !isActive(rule)).sort(byNumber);
+		const active = evaluation.rules.filter((rule) => !rule.deciding && isActive(rule)).sort(byId);
+		const inactive = evaluation.rules.filter((rule) => !rule.deciding && !isActive(rule)).sort(byId);
 
 		return [...deciding, ...active, ...inactive];
 	}, [evaluation.rules, cooldowns]);
+
+	const collided = Object.values(evaluation.pairs).some((pair) => pair.collided);
 
 	return (
 		<div className="rules-sidebar">
@@ -35,7 +37,7 @@ const RulesSidebar = ({evaluation}: RulesSidebarProps) => {
 			</div>
 			<div className="rules-sidebar__content">
 				{orderedRules.map((rule) => (
-					<RuleCard key={rule.ruleNumber} rule={rule} collided={evaluation.collided} cooldown={rule.cooldownMs !== undefined ? cooldowns[rule.ruleNumber] : undefined} onSelect={setSelectedRule} />
+					<RuleCard key={rule.id} rule={rule} collided={collided} cooldown={rule.cooldownMs !== undefined ? cooldowns[rule.id] : undefined} onSelect={setSelectedRule} />
 				))}
 			</div>
 			<RuleModal rule={selectedRule} onClose={() => setSelectedRule(null)} />
@@ -65,11 +67,11 @@ const RuleCard = ({rule, collided, cooldown, onSelect}: {rule: RuleState; collid
 		<motion.div layout className={className} onClick={() => onSelect(rule)} transition={{type: "spring", stiffness: 500, damping: 34}}>
 			<div className="rule-card__header">
 				<h3 className="rule-card__title">
-					Rule {rule.ruleNumber} — {rule.title}
+					Rule {rule.id} — {rule.title}
 				</h3>
 				{rule.deciding && <span className="rule-card__badge">Deciding</span>}
-				{applicable && !rule.deciding && !(collided && rule.ruleNumber === 14) && <span className="rule-card__badge rule-card__badge--applicable">Applies</span>}
-				{collided && rule.ruleNumber === 14 && <span className="rule-card__badge rule-card__badge--collision">Collision</span>}
+				{applicable && !rule.deciding && !(collided && rule.id === "14") && <span className="rule-card__badge rule-card__badge--applicable">Applies</span>}
+				{collided && rule.id === "14" && <span className="rule-card__badge rule-card__badge--collision">Collision</span>}
 			</div>
 			<motion.div
 				className="rule-card__body"

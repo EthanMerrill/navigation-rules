@@ -11,26 +11,23 @@ import {useRulesEngine} from "./hooks/useRulesEngine";
 function App() {
 	const [world, dispatch] = useReducer(worldReducer, undefined, createDefaultWorld);
 
-	// TEMPORARY (Phase 1): the engine evaluates the first two boats only.
 	const evaluation = useRulesEngine(world);
-	const [boatA, boatB] = world.boats;
+	const focusPair = evaluation.focusPair ? evaluation.pairs[evaluation.focusPair] : null;
+	const focusA = focusPair && world.boats.find((boat) => boat.id === focusPair.a);
+	const focusB = focusPair && world.boats.find((boat) => boat.id === focusPair.b);
 
 	return (
 		<div className="App">
 			<div className="patterns pt1"></div>
 			<style>@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');</style>
 			<AppHeader wind={world.wind} onWindChange={(direction) => dispatch({type: "setWind", direction})} boats={world.boats} onToggleTacking={(id) => dispatch({type: "toggleTacking", id})} />
-			{evaluation && <RulesSidebar evaluation={evaluation} />}
-			{world.boats.map((boat, index) => {
-				// Only the first two boats have a rule view until Phase 2.
-				const view = evaluation && index < 2 ? evaluation.boats[index] : null;
-				return (
-					<div className="draggable" key={boat.id}>
-						{view && <MoveableBoat boatState={boat} dispatch={dispatch} text={boat.id} boatRuleView={view} />}
-					</div>
-				);
-			})}
-			{evaluation && <TransomLineOverlay boatA={boatA} boatB={boatB} overlapped={evaluation.overlapped} />}
+			<RulesSidebar evaluation={evaluation} />
+			{world.boats.map((boat) => (
+				<div className="draggable" key={boat.id}>
+					<MoveableBoat boatState={boat} dispatch={dispatch} text={boat.id} boatView={evaluation.boats[boat.id]} />
+				</div>
+			))}
+			{focusPair && focusA && focusB && <TransomLineOverlay boatA={focusA} boatB={focusB} overlapped={focusPair.overlapped} />}
 		</div>
 	);
 }

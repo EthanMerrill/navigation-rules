@@ -1,7 +1,7 @@
 import {useEffect, useRef, useState} from "react";
 import type {RuleEvaluation} from "../rules/rulesEngine";
 
-/** Snapshot of a single rule's cooldown, keyed by rule number. */
+/** Snapshot of a single rule's cooldown, keyed by rule id. */
 export interface CooldownState {
 	/** Cooldown duration in ms (copied from the rule definition). */
 	durationMs: number;
@@ -19,16 +19,16 @@ export interface CooldownState {
  * persists (or recurs) the timer refreshes, so the rule only starts cooling down
  * once it stops firing.
  */
-export function useCooldowns(evaluation: RuleEvaluation): Record<number, CooldownState> {
-	const [cooldowns, setCooldowns] = useState<Record<number, CooldownState>>({});
-	const timeoutsRef = useRef<Record<number, number>>({});
+export function useCooldowns(evaluation: RuleEvaluation): Record<string, CooldownState> {
+	const [cooldowns, setCooldowns] = useState<Record<string, CooldownState>>({});
+	const timeoutsRef = useRef<Record<string, number>>({});
 
 	useEffect(() => {
 		for (const rule of evaluation.rules) {
 			const durationMs = rule.cooldownMs;
 			if (durationMs === undefined) continue;
 
-			const ruleNumber = rule.ruleNumber;
+			const ruleNumber = rule.id;
 			if (!rule.applicable) continue;
 
 			// (Re-)fire: refresh the timer and restart the drain animation.
@@ -58,7 +58,7 @@ export function useCooldowns(evaluation: RuleEvaluation): Record<number, Cooldow
 		const timeouts = timeoutsRef.current;
 		return () => {
 			for (const key of Object.keys(timeouts)) {
-				window.clearTimeout(timeouts[Number(key)]);
+				window.clearTimeout(timeouts[key]);
 			}
 		};
 	}, []);

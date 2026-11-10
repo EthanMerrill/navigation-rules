@@ -1,77 +1,85 @@
 import {useEffect, useMemo, useRef} from "react";
 import type {WorldState} from "../model/world";
-import {RuleEvaluation, Tack, evaluate, getTack, isClearAstern, computeMeetingFacts, TWO_HULL_LENGTHS} from "../rules/rulesEngine";
+import {EngineHistory, RuleEvaluation, Tack, WorldFacts, TWO_HULL_LENGTHS, computeFacts, evaluate, isClearAstern} from "../rules/rulesEngine";
 
 /** Heading change (degrees) above which a boat is considered to be changing course. */
 const COURSE_CHANGE_EPSILON = 0.5;
 
+/** Mutable history carried between renders (replaced by engine memory in Phase 3). */
+interface HistoryRefs {
+	prevTacks: Record<string, Tack | null>;
+	prevHeadings: Record<string, number>;
+	prevRightOfWay: Record<string, string | null>;
+	/** Pair key → boat id → whether that boat was clear astern of the other last frame. */
+	prevClearAstern: Record<string, Record<string, boolean>>;
+	/** Pair key → boat id → latched "established a leeward overlap from clear astern" (Rule 17.1). */
+	leewardFromAstern: Record<string, Record<string, boolean>>;
+}
+
 /**
- * React glue around the pure rules engine. Memoizes the evaluation and tracks
- * the history needed by the stateful limitation rules. TEMPORARY: evaluates
- * only the first two boats of the world (Phase 2 generalises this). History:
+ * React glue around the pure rules engine. Computes the facts once, evaluates
+ * every pair of boats, and tracks the history needed by the stateful rules,
+ * keyed by boat id and pair key:
  *   - previous tack of each boat (avoid head-to-wind flicker),
- *   - previous stand-on boat (Rule 15 — acquiring right of way),
- *   - previous headings (Rule 16 — changing course).
+ *   - previous right-of-way boat per pair (Rule 15 — acquiring right of way),
+ *   - previous headings (Rule 16 — changing course),
+ *   - leeward-from-astern latch per pair (Rule 17.1).
+ * With fewer than two boats there are simply no pairs.
  */
-export function useRulesEngine(world: WorldState): RuleEvaluation | null {
-	const [boatA, boatB] = world.boats;
-	const wind = world.wind;
-	const prevTacksRef = useRef<{a: Tack | null; b: Tack | null}>({a: null, b: null});
-	const prevHeadingsRef = useRef<{a: number; b: number}>({a: boatA?.heading ?? 0, b: boatB?.heading ?? 0});
-	const prevStandOnIsARef = useRef<boolean | null>(null);
+export function useRulesEngine(world: WorldState): RuleEvaluation {
+	const historyRef = useRef<HistoryRefs>({prevTacks: {}, prevHeadings: {}, prevRightOfWay: {}, prevClearAstern: {}, leewardFromAstern: {}});
 
-	// Rule 17.1 transition history: whether each boat has (in a prior frame)
-	// established a leeward overlap from clear astern, and each boat's previous
-	// clear-astern status.
-	const establishedLeewardRef = useRef<{a: boolean; b: boolean}>({a: false, b: false});
-	const prevClearAsternARef = useRef(false);
-	const prevClearAsternBRef = useRef(false);
+	const computed = useMemo(() => {
+		const h = historyRef.current;
+		const facts = computeFacts(world, h.prevTacks);
 
-	const evaluation = useMemo(() => {
-		if (!boatA || !boatB) return null;
-		const changingCourseA = Math.abs(boatA.heading - prevHeadingsRef.current.a) > COURSE_CHANGE_EPSILON;
-		const changingCourseB = Math.abs(boatB.heading - prevHeadingsRef.current.b) > COURSE_CHANGE_EPSILON;
+		const changingCourse: Record<string, boolean> = {};
+		for (const boat of world.boats) {
+			const prev = h.prevHeadings[boat.id];
+			changingCourse[boat.id] = prev !== undefined && Math.abs(boat.heading - prev) > COURSE_CHANGE_EPSILON;
+		}
 
-		return evaluate(boatA, boatB, wind, {
-			prevTacks: prevTacksRef.current,
-			prevStandOnIsA: prevStandOnIsARef.current,
-			changingCourseA,
-			changingCourseB,
-			establishedLeewardA: establishedLeewardRef.current.a,
-			establishedLeewardB: establishedLeewardRef.current.b,
-		});
-	}, [boatA, boatB, wind]);
-
-	// The stand-on boat is determined by the deciding rule.
-	const standOnIsA: boolean | null = !evaluation ? null : evaluation.boats[0].standOn ? true : evaluation.boats[1].standOn ? false : null;
+		const history: EngineHistory = {prevRightOfWay: h.prevRightOfWay, changingCourse, leewardFromAstern: h.leewardFromAstern};
+		return {facts, evaluation: evaluate(world, facts, history)};
+	}, [world]);
 
 	useEffect(() => {
-		if (!boatA || !boatB) return;
-		const aTack = getTack(boatA.heading, wind.direction);
-		const bTack = getTack(boatB.heading, wind.direction);
-		if (aTack !== null) prevTacksRef.current.a = aTack;
-		if (bTack !== null) prevTacksRef.current.b = bTack;
+		const {facts, evaluation} = computed;
+		const prev = historyRef.current;
+		historyRef.current = nextHistory(world, facts, evaluation, prev);
+	}, [world, computed]);
 
-		prevHeadingsRef.current = {a: boatA.heading, b: boatB.heading};
-		prevStandOnIsARef.current = standOnIsA;
+	return computed.evaluation;
+}
+
+/** Fold one evaluated frame into the history for the next frame. */
+function nextHistory(world: WorldState, facts: WorldFacts, evaluation: RuleEvaluation, prev: HistoryRefs): HistoryRefs {
+	const next: HistoryRefs = {prevTacks: {}, prevHeadings: {}, prevRightOfWay: {}, prevClearAstern: {}, leewardFromAstern: {}};
+
+	for (const boat of world.boats) {
+		next.prevTacks[boat.id] = facts.boats[boat.id].tack;
+		next.prevHeadings[boat.id] = boat.heading;
+	}
+
+	for (const [key, pair] of Object.entries(facts.pairs)) {
+		next.prevRightOfWay[key] = evaluation.pairs[key].rightOfWay;
 
 		// Rule 17.1 — detect a clear-astern boat becoming overlapped to leeward
 		// within two hull lengths, and latch it until the boats are no longer
 		// overlapped within that distance (or are no longer on the same tack).
-		const {facts} = computeMeetingFacts(boatA, boatB, wind, prevTacksRef.current);
-		const withinTwoLengths = facts.separation < TWO_HULL_LENGTHS;
+		const a = world.boats.find((b) => b.id === pair.a);
+		const b = world.boats.find((boat) => boat.id === pair.b);
+		if (!a || !b) continue;
 
-		if (facts.overlapped && withinTwoLengths) {
-			const windwardIsA = facts.windwardIsA === true;
-			if (!windwardIsA && prevClearAsternARef.current) establishedLeewardRef.current.a = true;
-			if (windwardIsA && prevClearAsternBRef.current) establishedLeewardRef.current.b = true;
-		} else {
-			establishedLeewardRef.current = {a: false, b: false};
+		const latched: Record<string, boolean> = {...prev.leewardFromAstern[key]};
+		if (pair.overlapped && pair.separation < TWO_HULL_LENGTHS && pair.windwardIsA !== null) {
+			const leewardId = pair.windwardIsA ? pair.b : pair.a;
+			if (prev.prevClearAstern[key]?.[leewardId]) latched[leewardId] = true;
+			next.leewardFromAstern[key] = latched;
 		}
 
-		prevClearAsternARef.current = isClearAstern(boatA, boatB);
-		prevClearAsternBRef.current = isClearAstern(boatB, boatA);
-	}, [boatA, boatB, wind, standOnIsA]);
+		next.prevClearAstern[key] = {[a.id]: isClearAstern(a, b), [b.id]: isClearAstern(b, a)};
+	}
 
-	return evaluation;
+	return next;
 }

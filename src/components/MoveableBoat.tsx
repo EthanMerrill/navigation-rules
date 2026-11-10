@@ -2,7 +2,7 @@ import React from "react";
 import MoveableComponent from "./MoveableComponent";
 import PrototypeBoat from "../assets/PrototypeBoat.svg";
 import type {BoatState} from "../model/world";
-import {BoatRuleView, PointOfSail} from "../rules/rulesEngine";
+import {BoatView, PointOfSail} from "../rules/rulesEngine";
 import type {WorldAction} from "../state/worldReducer";
 import {centerFromWrapperOrigin, wrapperOrigin} from "../view/scale";
 
@@ -10,7 +10,7 @@ export interface ImoveableBoatProps {
 	boatState: BoatState;
 	dispatch: React.Dispatch<WorldAction>;
 	text: string;
-	boatRuleView: BoatRuleView;
+	boatView: BoatView;
 }
 
 const STARBOARD_SAIL_PATH = "M10 1C-0.5 14.5 -0.5 61.5 3.5 78.5";
@@ -44,7 +44,7 @@ const POINT_OF_SAIL_LABELS: Record<PointOfSail, string> = {
 };
 
 const MoveableBoat = (props: ImoveableBoatProps) => {
-	const {boatState, dispatch, text, boatRuleView} = props;
+	const {boatState, dispatch, text, boatView} = props;
 	const moveRef = React.useRef<HTMLDivElement>(null);
 
 	// The boat's stored position is its center, but the wrapper is positioned by
@@ -52,7 +52,7 @@ const MoveableBoat = (props: ImoveableBoatProps) => {
 	const origin = wrapperOrigin(boatState);
 	const transform = `translate(${origin.x}px, ${origin.y}px) rotate(${boatState.heading}deg)`;
 
-	const sailPath = boatRuleView.tack === "PORT" ? PORT_SAIL_PATH : STARBOARD_SAIL_PATH;
+	const sailPath = boatView.tack === "PORT" ? PORT_SAIL_PATH : STARBOARD_SAIL_PATH;
 
 	// The sail hangs from its mast (luff). Each path's mast is at the top edge:
 	//   - starboard sail: masthead at (10, 1), foot curves to the left/port side
@@ -63,8 +63,8 @@ const MoveableBoat = (props: ImoveableBoatProps) => {
 	// Rotation direction (CSS positive = clockwise on screen):
 	//   - starboard tack: boom to port (left)  → rotate clockwise, +trim
 	//   - port tack:      boom to starboard (right) → rotate counter-clockwise, -trim
-	const trimAngle = boatRuleView.sailTrimAngle;
-	const isPort = boatRuleView.tack === "PORT";
+	const trimAngle = boatView.sailTrimAngle;
+	const isPort = boatView.tack === "PORT";
 	const rotation = isPort ? -trimAngle : trimAngle;
 
 	// The sail is anchored at its MAST (the forward-most point = the head of the
@@ -92,7 +92,7 @@ const MoveableBoat = (props: ImoveableBoatProps) => {
 	const sailTransformOrigin = `${mastSvgX}px 1px`;
 
 	// When in irons (head to wind) the sail luffs: it flaps and ripples.
-	const isFlapping = boatRuleView.pointOfSail === "HEAD_TO_WIND";
+	const isFlapping = boatView.pointOfSail === "HEAD_TO_WIND";
 	const [flapA, flapB] = FLAP_SHAPES[sailPath] ?? [sailPath, sailPath];
 	const flapDuration = 1.1;
 
@@ -104,30 +104,30 @@ const MoveableBoat = (props: ImoveableBoatProps) => {
 				style={{
 					transform,
 				}}>
-				<img alt={text} src={PrototypeBoat} className={boatRuleView.standOn ? "standon-boat" : undefined} />
-				{boatRuleView.windward && (
+				<img alt={text} src={PrototypeBoat} className={boatView.standOn ? "standon-boat" : undefined} />
+				{boatView.windwardOf.length > 0 && (
 					<div className="windward-tag">
 						<p className="text-tag">Windward</p>
 					</div>
 				)}
-				{boatRuleView.leeward && (
+				{boatView.leewardOf.length > 0 && (
 					<div className="leeward-tag">
 						<p className="text-tag">
 							<u>Leeward</u>
 						</p>
 					</div>
 				)}
-				{boatRuleView.tack === "STARBOARD" && (
+				{boatView.tack === "STARBOARD" && (
 					<div className="starboard-tag">
 						<p className="text-tag">Starboard</p>
 					</div>
 				)}
-				{boatRuleView.tack === "PORT" && (
+				{boatView.tack === "PORT" && (
 					<div className="port-tag">
 						<p className="text-tag">Port</p>
 					</div>
 				)}
-				{boatRuleView.tack === null && (
+				{boatView.tack === null && (
 					<div className="windward-tag">
 						<p className="text-tag">Head to wind</p>
 					</div>
@@ -138,7 +138,7 @@ const MoveableBoat = (props: ImoveableBoatProps) => {
 					</div>
 				)}
 				<div className="point-of-sail-tag">
-					<p className="text-tag">{POINT_OF_SAIL_LABELS[boatRuleView.pointOfSail]}</p>
+					<p className="text-tag">{POINT_OF_SAIL_LABELS[boatView.pointOfSail]}</p>
 				</div>
 				<svg
 					className={isFlapping ? "sail-path sail-path--flapping" : "sail-path"}

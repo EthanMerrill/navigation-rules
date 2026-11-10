@@ -34,7 +34,7 @@ const RuleModal = ({rule, onClose}: RuleModalProps) => {
 						transition={{type: "spring", stiffness: 350, damping: 30}}>
 						<div className="rule-modal__header">
 							<h2 id="rule-modal-title">
-								Rule {rule.ruleNumber} — {rule.title}
+								Rule {rule.id} — {rule.title}
 							</h2>
 							<button type="button" className="rule-modal__close" onClick={onClose} aria-label="Close">
 								×

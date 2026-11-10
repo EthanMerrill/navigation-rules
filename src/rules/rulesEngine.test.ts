@@ -1,7 +1,8 @@
 import type {BoatState, WindState, WorldState} from "../model/world";
+import type {EngineHistory, PairView, RuleDefinition, RuleEvaluation} from "./types";
 import {PX_PER_HULL_LENGTH, toWorld} from "../view/scale";
 import {worldReducer, createDefaultWorld} from "../state/worldReducer";
-import {TWO_HULL_LENGTHS, HULL_ACTUAL_LENGTH, HULL_FOREMOST_OFFSET, HULL_AFTERMOST_OFFSET, computeFacts, computeMeetingFacts, pairKey, areOnSameTack, boatPerimeterDistance, evaluate, getAheadBoat, getHullVertices, getPointOfSail, getSailTrimAngle, getTack, getTransomLine, getWindAngle, getWindwardBoat, inferProperCourse, isClearAstern, isOverlapped, isSailingAboveProperCourse, isSailingBelowProperCourse} from "./rulesEngine";
+import {TWO_HULL_LENGTHS, HULL_ACTUAL_LENGTH, HULL_FOREMOST_OFFSET, HULL_AFTERMOST_OFFSET, computeFacts, computeMeetingFacts, pairKey, areOnSameTack, boatPerimeterDistance, compareRuleIds, evaluate, RULE_REGISTRY, getAheadBoat, getHullVertices, getPointOfSail, getSailTrimAngle, getTack, getTransomLine, getWindAngle, getWindwardBoat, inferProperCourse, isClearAstern, isOverlapped, isSailingAboveProperCourse, isSailingBelowProperCourse} from "./rulesEngine";
 
 // All tests use wind blowing FROM the north (0°), i.e. down the screen.
 const WIND_NORTH: WindState = {direction: 0};
@@ -17,6 +18,37 @@ const boatPx = boat;
 
 /** Convert a world length (hull lengths) to pixels for readable assertions. */
 const px = (length: number) => length * PX_PER_HULL_LENGTH;
+
+/** A default world with the given boats and wind. */
+function worldOf(boats: BoatState[], wind: WindState = WIND_NORTH): WorldState {
+	return {...createDefaultWorld(), boats, wind};
+}
+
+/** Evaluate any number of boats (facts computed once, as the hook does). */
+function evalBoats(boats: BoatState[], history: EngineHistory = {}, focusPair?: string, wind: WindState = WIND_NORTH): RuleEvaluation {
+	const world = worldOf(boats, wind);
+	return evaluate(world, computeFacts(world), history, focusPair);
+}
+
+/** Evaluate a two-boat world. */
+function evalPair(a: BoatState, b: BoatState, wind: WindState = WIND_NORTH, history: EngineHistory = {}): RuleEvaluation {
+	return evalBoats([a, b], history, undefined, wind);
+}
+
+/** The view of the pair formed by two boats. */
+function pairOf(result: RuleEvaluation, a: BoatState, b: BoatState): PairView {
+	return result.pairs[pairKey(a.id, b.id)];
+}
+
+/** A boat's obligations other than the Rule 14 avoidContact duty that close boats always share. */
+function duties(result: RuleEvaluation, id: string) {
+	return result.boats[id].obligations.filter((o) => o.kind !== "avoidContact");
+}
+
+/** True when the rule fired (after suspension) anywhere. */
+function isApplicable(result: RuleEvaluation, id: string): boolean {
+	return result.rules.find((r) => r.id === id)?.applicable === true;
+}
 
 describe("getTack", () => {
 	it("reports port tack when wind comes over the port side", () => {
@@ -268,9 +300,10 @@ describe("hull-derived rule distances", () => {
 		// real-hull cutoff (~323px) excludes it.
 		const windward = boat("windward", 300, 150, 90);
 		const leeward = boat("leeward", 300, 560, 90);
-		const result = evaluate(windward, leeward, WIND_NORTH);
-		expect(result.rules.find((r) => r.ruleNumber === 17)?.applicable).toBe(false);
-		expect(result.appliedRule).toBe(11); // right-of-way decision unchanged
+		const result = evalPair(windward, leeward);
+		expect(isApplicable(result, "17.1")).toBe(false);
+		expect(isApplicable(result, "17.2")).toBe(false);
+		expect(pairOf(result, windward, leeward).decidingRuleId).toBe("11"); // right-of-way decision unchanged
 	});
 });
 
@@ -294,58 +327,143 @@ describe("evaluate", () => {
 	it("applies Rule 10 on opposite tacks (starboard stands on)", () => {
 		const port = boat("port", 300, 200, 90); // port tack
 		const starboard = boat("starboard", 400, 200, 270); // starboard tack
-		const result = evaluate(port, starboard, WIND_NORTH);
+		const result = evalPair(port, starboard);
+		const pair = pairOf(result, port, starboard);
 
-		expect(result.appliedRule).toBe(10);
-		expect(result.sameTack).toBe(false);
-		expect(result.overlapped).toBeNull();
-		expect(result.boats[0].standOn).toBe(false); // port
-		expect(result.boats[0].giveWay).toBe(true);
-		expect(result.boats[1].standOn).toBe(true); // starboard
-		expect(result.boats[1].giveWay).toBe(false);
+		expect(pair.decidingRuleId).toBe("10");
+		expect(pair.rightOfWay).toBe("starboard");
+		expect(pair.sameTack).toBe(false);
+		expect(pair.overlapped).toBeNull();
+		expect(result.boats.port.standOn).toBe(false);
+		expect(result.boats.starboard.standOn).toBe(true);
+		expect(duties(result, "port")).toMatchObject([{ruleId: "10", kind: "keepClear", towards: "starboard"}]);
+		expect(duties(result, "starboard")).toEqual([]);
 	});
 
 	it("applies Rule 11 on same tack and overlapped (leeward stands on)", () => {
 		const windward = boat("windward", 300, 150, 90); // north = windward
 		const leeward = boat("leeward", 300, 350, 90); // south = leeward
-		const result = evaluate(windward, leeward, WIND_NORTH);
+		const result = evalPair(windward, leeward);
+		const pair = pairOf(result, windward, leeward);
 
-		expect(result.appliedRule).toBe(11);
-		expect(result.sameTack).toBe(true);
-		expect(result.overlapped).toBe(true);
-		expect(result.boats[0].standOn).toBe(false); // windward keeps clear
-		expect(result.boats[0].windward).toBe(true);
-		expect(result.boats[1].standOn).toBe(true); // leeward stands on
-		expect(result.boats[1].leeward).toBe(true);
+		expect(pair.decidingRuleId).toBe("11");
+		expect(pair.rightOfWay).toBe("leeward");
+		expect(pair.sameTack).toBe(true);
+		expect(pair.overlapped).toBe(true);
+		expect(result.boats.windward.standOn).toBe(false);
+		expect(result.boats.windward.windwardOf).toEqual(["leeward"]);
+		expect(result.boats.windward.leewardOf).toEqual([]);
+		expect(result.boats.leeward.standOn).toBe(true);
+		expect(result.boats.leeward.leewardOf).toEqual(["windward"]);
 	});
 
 	it("applies Rule 12 on same tack and not overlapped (clear ahead stands on)", () => {
 		const astern = boat("astern", 300, 300, 90);
 		const ahead = boat("ahead", 600, 300, 90);
-		const result = evaluate(astern, ahead, WIND_NORTH);
+		const result = evalPair(astern, ahead);
+		const pair = pairOf(result, astern, ahead);
 
-		expect(result.appliedRule).toBe(12);
-		expect(result.sameTack).toBe(true);
-		expect(result.overlapped).toBe(false);
-		expect(result.boats[0].standOn).toBe(false); // astern keeps clear
-		expect(result.boats[1].standOn).toBe(true); // ahead stands on
+		expect(pair.decidingRuleId).toBe("12");
+		expect(pair.sameTack).toBe(true);
+		expect(pair.overlapped).toBe(false);
+		expect(result.boats.astern.standOn).toBe(false);
+		expect(result.boats.ahead.standOn).toBe(true);
 	});
 
 	it("ranks the deciding rule first, then applicable, then non-applicable", () => {
 		const a = boat("a", 300, 150, 90);
 		const b = boat("b", 300, 350, 90);
-		const result = evaluate(a, b, WIND_NORTH); // Rule 11 decides
+		const result = evalPair(a, b); // Rule 11 decides
 
-		// 11 decides; 14 (hulls ~122px apart, within risk distance) and 17 (the
+		// 11 decides; 14 (hulls ~122px apart, within risk distance) and 17.2 (the
 		// windward boat is on a beam reach, below her inferred close-hauled proper
 		// course) co-apply; the rest are not applicable, sorted ascending.
-		expect(result.rules.map((r) => r.ruleNumber)).toEqual([11, 14, 17, 10, 12, 13, 15, 16]);
+		expect(result.rules.map((r) => r.id)).toEqual(["11", "14", "17.2", "10", "12", "13", "15", "16", "17.1"]);
 		expect(result.rules[0].deciding).toBe(true);
 		expect(result.rules[0].applicable).toBe(true);
 		// Only one rule should ever be deciding.
 		expect(result.rules.filter((r) => r.deciding).length).toBe(1);
-		// Rule 11 (deciding), Rule 14 (close) and Rule 17 (below proper course).
+		// Rule 11 (deciding), Rule 14 (close) and Rule 17.2 (below proper course).
 		expect(result.rules.filter((r) => r.applicable).length).toBe(3);
+	});
+
+	it("sorts rule ids numerically, then by sub-number", () => {
+		const ids = ["18", "17.2", "10", "17.1", "9", "18.2b", "17"];
+		expect([...ids].sort(compareRuleIds)).toEqual(["9", "10", "17", "17.1", "17.2", "18", "18.2b"]);
+	});
+});
+
+describe("evaluate — three boats", () => {
+	it("yields three pairs with the right right-of-way in each", () => {
+		// port: port tack, east of starboard; leeward: same tack as port but south
+		// of it (overlapped, so port is windward); starboard: starboard tack.
+		const port = boat("a-port", 300, 150, 90);
+		const leeward = boat("b-leeward", 300, 350, 90);
+		const starboard = boat("c-starboard", 800, 250, 270);
+		const result = evalBoats([port, leeward, starboard]);
+
+		expect(Object.keys(result.pairs).sort()).toEqual([pairKey("a-port", "b-leeward"), pairKey("a-port", "c-starboard"), pairKey("b-leeward", "c-starboard")].sort());
+		expect(result.pairs[pairKey("a-port", "b-leeward")].rightOfWay).toBe("b-leeward"); // Rule 11
+		expect(result.pairs[pairKey("a-port", "c-starboard")].rightOfWay).toBe("c-starboard"); // Rule 10
+		expect(result.pairs[pairKey("b-leeward", "c-starboard")].rightOfWay).toBe("c-starboard"); // Rule 10
+
+		// a-port keeps clear of both; b-leeward keeps clear of c-starboard only.
+		expect(result.boats["a-port"].standOn).toBe(false);
+		expect(result.boats["a-port"].obligations.filter((o) => o.kind === "keepClear")).toHaveLength(2);
+		expect(result.boats["b-leeward"].obligations.filter((o) => o.kind === "keepClear")).toMatchObject([{towards: "c-starboard"}]);
+		expect(result.boats["c-starboard"].standOn).toBe(true);
+	});
+
+	it("uses the first pair by sorted key as the focus pair unless one is given", () => {
+		const boats = [boat("a", 300, 150, 90), boat("b", 300, 350, 90), boat("c", 900, 250, 270)];
+		expect(evalBoats(boats).focusPair).toBe(pairKey("a", "b"));
+		const focused = evalBoats(boats, {}, pairKey("b", "c"));
+		expect(focused.focusPair).toBe(pairKey("b", "c"));
+		// Rule 10 decides in the b|c pair, Rule 11 in a|b: the deciding flag follows the focus.
+		expect(focused.rules.find((r) => r.id === "10")?.deciding).toBe(true);
+		expect(focused.rules.find((r) => r.id === "11")?.deciding).toBe(false);
+		expect(focused.rules.find((r) => r.id === "11")?.applicable).toBe(true);
+	});
+
+	it("has no pairs (and never null) with fewer than two boats", () => {
+		const result = evalBoats([boat("solo", 300, 150, 90)]);
+		expect(result.pairs).toEqual({});
+		expect(result.focusPair).toBeNull();
+		expect(result.boats.solo.tack).toBe("PORT");
+		expect(result.rules.every((r) => !r.applicable)).toBe(true);
+	});
+});
+
+describe("evaluate — rule suspension", () => {
+	/** A stub rule that always fires for a pair and suspends rule 12. */
+	const suspender: RuleDefinition = {
+		id: "99",
+		part: 2,
+		section: "D",
+		scope: "pair",
+		suspends: ["12"],
+		title: "Stub suspender",
+		description: "",
+		fullText: "",
+		laymanExplanation: "",
+		evaluate: ({pair}) => [{ruleId: "99", boat: pair!.a.id, towards: pair!.b.id, kind: "giveRoom", detail: "stub"}],
+	};
+
+	it("drops a suspended rule's obligations", () => {
+		const astern = boat("astern", 300, 300, 90);
+		const ahead = boat("ahead", 600, 300, 90);
+
+		const plain = evalPair(astern, ahead);
+		expect(isApplicable(plain, "12")).toBe(true);
+		expect(plain.boats.astern.standOn).toBe(false);
+
+		const world = worldOf([astern, ahead]);
+		const result = evaluate(world, computeFacts(world), {}, undefined, [...RULE_REGISTRY, suspender]);
+		expect(isApplicable(result, "99")).toBe(true);
+		expect(isApplicable(result, "12")).toBe(false);
+		expect(result.obligations.some((o) => o.ruleId === "12")).toBe(false);
+		expect(result.boats.astern.standOn).toBe(true); // 12's keepClear was dropped
+		expect(pairOf(result, astern, ahead).rightOfWay).toBeNull();
 	});
 });
 
@@ -355,39 +473,71 @@ describe("evaluate — Rule 13 (While Tacking)", () => {
 		// b (starboard) stand on, but Rule 13 (tacking) overrides it.
 		const a = boat("a", 300, 200, 90); // port tack
 		const b = boat("b", 400, 200, 270, true); // starboard tack, tacking
-		const result = evaluate(a, b, WIND_NORTH);
+		const result = evalPair(a, b);
 
-		expect(result.appliedRule).toBe(13);
-		expect(result.boats[0].standOn).toBe(true); // a stands on
-		expect(result.boats[1].standOn).toBe(false); // b (tacking) keeps clear
+		expect(pairOf(result, a, b).decidingRuleId).toBe("13");
+		expect(result.boats.a.standOn).toBe(true); // a stands on
+		expect(result.boats.b.standOn).toBe(false); // b (tacking) keeps clear
 	});
 
-	it("ranks Rule 13 first and Rule 10 as still-applicable below it", () => {
+	it("ranks Rule 13 first and reports Rule 10 as suspended (not applicable)", () => {
 		const a = boat("a", 300, 200, 90); // port tack
 		const b = boat("b", 400, 200, 270, true); // starboard tack, tacking
-		const result = evaluate(a, b, WIND_NORTH);
+		const result = evalPair(a, b);
 
-		expect(result.rules[0].ruleNumber).toBe(13);
+		expect(result.rules[0].id).toBe("13");
 		expect(result.rules[0].deciding).toBe(true);
-		// Rule 10 is applicable (opposite tacks) but not deciding.
-		const rule10 = result.rules.find((r) => r.ruleNumber === 10);
-		expect(rule10?.applicable).toBe(true);
+		// Rule 10 would apply (opposite tacks) but Rule 13 suspends it.
+		const rule10 = result.rules.find((r) => r.id === "10");
+		expect(rule10?.applicable).toBe(false);
 		expect(rule10?.deciding).toBe(false);
+		expect(result.obligations.some((o) => o.ruleId === "10")).toBe(false);
 		// Rules 11 and 12 are not applicable (opposite tacks).
-		expect(result.rules.find((r) => r.ruleNumber === 11)?.applicable).toBe(false);
-		expect(result.rules.find((r) => r.ruleNumber === 12)?.applicable).toBe(false);
+		expect(isApplicable(result, "11")).toBe(false);
+		expect(isApplicable(result, "12")).toBe(false);
 	});
 
-	it("gives way to neither boat when both are tacking", () => {
+	it("also suspends Rule 11 for a tacking windward boat", () => {
+		const windward = boat("windward", 300, 150, 90, true);
+		const leeward = boat("leeward", 300, 350, 90);
+		const result = evalPair(windward, leeward);
+		expect(isApplicable(result, "13")).toBe(true);
+		expect(isApplicable(result, "11")).toBe(false);
+		expect(pairOf(result, windward, leeward).rightOfWay).toBe("leeward");
+	});
+
+	it("keeps both boats clear when both are tacking and neither test separates them", () => {
+		// Abreast on the same line, so neither is on the other's port side or astern.
 		const a = boat("a", 300, 200, 90, true);
 		const b = boat("b", 400, 200, 270, true);
-		const result = evaluate(a, b, WIND_NORTH);
+		const result = evalPair(a, b);
 
-		expect(result.appliedRule).toBe(13);
-		expect(result.boats[0].standOn).toBe(false);
-		expect(result.boats[1].standOn).toBe(false);
-		expect(result.boats[0].giveWay).toBe(true);
-		expect(result.boats[1].giveWay).toBe(true);
+		expect(pairOf(result, a, b).decidingRuleId).toBe("13");
+		expect(pairOf(result, a, b).rightOfWay).toBeNull();
+		expect(result.boats.a.standOn).toBe(false);
+		expect(result.boats.b.standOn).toBe(false);
+	});
+
+	it("both tacking: the boat on the other's port side keeps clear", () => {
+		// Both heading 45°. b lies to a's starboard, so a lies on b's port side.
+		const a = boat("a", 300, 200, 45, true);
+		const b = boat("b", 400, 200, 45, true);
+		const result = evalPair(a, b);
+
+		expect(result.boats.a.standOn).toBe(false);
+		expect(result.boats.b.standOn).toBe(true);
+		expect(pairOf(result, a, b).rightOfWay).toBe("b");
+	});
+
+	it("both tacking: with no port/starboard difference the boat astern keeps clear", () => {
+		// In line astern, heading east: neither is to the side of the other.
+		const astern = boat("astern", 300, 300, 90, true);
+		const ahead = boat("ahead", 600, 300, 90, true);
+		const result = evalPair(astern, ahead);
+
+		expect(result.boats.astern.standOn).toBe(false);
+		expect(result.boats.ahead.standOn).toBe(true);
+		expect(pairOf(result, astern, ahead).rightOfWay).toBe("ahead");
 	});
 });
 
@@ -395,32 +545,34 @@ describe("evaluate — Rule 14 (Avoiding Contact)", () => {
 	it("co-applies when boats are close, without deciding right of way", () => {
 		const a = boat("a", 300, 150, 90);
 		const b = boat("b", 300, 350, 90); // hulls 100px apart → within risk distance
-		const result = evaluate(a, b, WIND_NORTH);
+		const result = evalPair(a, b);
 
-		const rule14 = result.rules.find((r) => r.ruleNumber === 14);
+		const rule14 = result.rules.find((r) => r.id === "14");
 		expect(rule14?.applicable).toBe(true);
 		expect(rule14?.deciding).toBe(false);
-		// It never changes the right-of-way outcome (Rule 11 still decides).
-		expect(result.appliedRule).toBe(11);
+		// It owes avoidContact on both boats and never changes the right-of-way outcome.
+		expect(result.boats.a.obligations.some((o) => o.kind === "avoidContact")).toBe(true);
+		expect(result.boats.b.obligations.some((o) => o.kind === "avoidContact")).toBe(true);
+		expect(pairOf(result, a, b).decidingRuleId).toBe("11");
 	});
 
 	it("does not apply when boats are far apart", () => {
 		const a = boat("a", 100, 100, 90);
 		const b = boat("b", 900, 100, 90); // hulls 600px apart
-		const result = evaluate(a, b, WIND_NORTH);
+		const result = evalPair(a, b);
 
-		expect(result.rules.find((r) => r.ruleNumber === 14)?.applicable).toBe(false);
+		expect(isApplicable(result, "14")).toBe(false);
 	});
 
 	it("flags a collision (overlapping hulls) without changing right of way", () => {
 		const a = boat("a", 300, 150, 90);
 		const b = boat("b", 300, 220, 90); // hulls overlap by 30px
-		const result = evaluate(a, b, WIND_NORTH);
+		const result = evalPair(a, b);
 
-		expect(result.collided).toBe(true);
-		expect(result.appliedRule).toBe(11); // right of way is still decided by 10–13
+		expect(pairOf(result, a, b).collided).toBe(true);
+		expect(pairOf(result, a, b).decidingRuleId).toBe("11"); // right of way is still decided by 10–13
 
-		const rule14 = result.rules.find((r) => r.ruleNumber === 14);
+		const rule14 = result.rules.find((r) => r.id === "14");
 		expect(rule14?.applicable).toBe(true);
 		expect(rule14?.deciding).toBe(false); // Rule 14 is a limitation, not a right-of-way rule
 		expect(rule14?.detail).toContain("Collision");
@@ -431,20 +583,28 @@ describe("evaluate — Rule 15 (Acquiring Right of Way)", () => {
 	it("applies when right of way has just changed hands", () => {
 		const a = boat("a", 300, 200, 90); // port
 		const b = boat("b", 400, 200, 270); // starboard → b stands on
-		const result = evaluate(a, b, WIND_NORTH, {prevStandOnIsA: true}); // a used to stand on
+		const result = evalPair(a, b, WIND_NORTH, {prevRightOfWay: {[pairKey("a", "b")]: "a"}}); // a used to stand on
 
-		const rule15 = result.rules.find((r) => r.ruleNumber === 15);
+		const rule15 = result.rules.find((r) => r.id === "15");
 		expect(rule15?.applicable).toBe(true);
 		expect(rule15?.deciding).toBe(false);
-		expect(result.appliedRule).toBe(10); // right-of-way decision unchanged
+		expect(duties(result, "b")).toMatchObject([{ruleId: "15", kind: "giveRoom", towards: "a"}]);
+		expect(pairOf(result, a, b).decidingRuleId).toBe("10"); // right-of-way decision unchanged
 	});
 
 	it("does not apply when right of way is unchanged", () => {
 		const a = boat("a", 300, 200, 90);
 		const b = boat("b", 400, 200, 270);
-		const result = evaluate(a, b, WIND_NORTH, {prevStandOnIsA: false}); // b stood on before too
+		const result = evalPair(a, b, WIND_NORTH, {prevRightOfWay: {[pairKey("a", "b")]: "b"}}); // b stood on before too
 
-		expect(result.rules.find((r) => r.ruleNumber === 15)?.applicable).toBe(false);
+		expect(isApplicable(result, "15")).toBe(false);
+	});
+
+	it("does not apply when there was no previous right-of-way boat", () => {
+		const a = boat("a", 300, 200, 90);
+		const b = boat("b", 400, 200, 270);
+		expect(isApplicable(evalPair(a, b, WIND_NORTH, {prevRightOfWay: {[pairKey("a", "b")]: null}}), "15")).toBe(false);
+		expect(isApplicable(evalPair(a, b), "15")).toBe(false);
 	});
 });
 
@@ -452,19 +612,20 @@ describe("evaluate — Rule 16 (Changing Course)", () => {
 	it("applies when the right-of-way boat is changing course", () => {
 		const a = boat("a", 300, 200, 90); // port
 		const b = boat("b", 400, 200, 270); // starboard → b stands on
-		const result = evaluate(a, b, WIND_NORTH, {changingCourseB: true});
+		const result = evalPair(a, b, WIND_NORTH, {changingCourse: {b: true}});
 
-		const rule16 = result.rules.find((r) => r.ruleNumber === 16);
+		const rule16 = result.rules.find((r) => r.id === "16");
 		expect(rule16?.applicable).toBe(true);
 		expect(rule16?.deciding).toBe(false);
+		expect(duties(result, "b")).toMatchObject([{ruleId: "16", kind: "giveRoom", towards: "a"}]);
 	});
 
 	it("does not apply when the give-way boat changes course", () => {
 		const a = boat("a", 300, 200, 90);
 		const b = boat("b", 400, 200, 270);
-		const result = evaluate(a, b, WIND_NORTH, {changingCourseA: true}); // a is give-way
+		const result = evalPair(a, b, WIND_NORTH, {changingCourse: {a: true}}); // a is give-way
 
-		expect(result.rules.find((r) => r.ruleNumber === 16)?.applicable).toBe(false);
+		expect(isApplicable(result, "16")).toBe(false);
 	});
 });
 
@@ -476,22 +637,23 @@ describe("evaluate — Rule 17 (On the Same Tack; Proper Course)", () => {
 		// her proper course.
 		const a = boat("a", 300, 150, 45);
 		const b = boat("b", 441, 291, 30);
-		const result = evaluate(a, b, WIND_NORTH, {establishedLeewardB: true});
+		const result = evalPair(a, b, WIND_NORTH, {leewardFromAstern: {[pairKey("a", "b")]: {b: true}}});
 
-		const rule17 = result.rules.find((r) => r.ruleNumber === 17);
-		expect(rule17?.applicable).toBe(true);
-		expect(rule17?.deciding).toBe(false);
-		expect(rule17?.detail).toContain("17.1");
-		expect(result.appliedRule).toBe(11); // right-of-way decision unchanged
+		const rule171 = result.rules.find((r) => r.id === "17.1");
+		expect(rule171?.applicable).toBe(true);
+		expect(rule171?.deciding).toBe(false);
+		expect(rule171?.detail).toContain("17.1");
+		expect(duties(result, "b")).toMatchObject([{ruleId: "17.1", kind: "notAboveProperCourse", towards: "a"}]);
+		expect(pairOf(result, a, b).decidingRuleId).toBe("11"); // right-of-way decision unchanged
 	});
 
 	it("17.1 does not apply without the clear-astern-to-leeward transition", () => {
 		// Same geometry, but b has not (latch absent) established the overlap from astern.
 		const a = boat("a", 300, 150, 45);
 		const b = boat("b", 300, 350, 30);
-		const result = evaluate(a, b, WIND_NORTH); // no establishedLeewardB
+		const result = evalPair(a, b); // no latch
 
-		expect(result.rules.find((r) => r.ruleNumber === 17)?.applicable).toBe(false);
+		expect(isApplicable(result, "17.1")).toBe(false);
 	});
 
 	it("17.2 applies when a windward boat sails below her proper course (not on a beat)", () => {
@@ -499,12 +661,13 @@ describe("evaluate — Rule 17 (On the Same Tack; Proper Course)", () => {
 		// close-hauled proper course (45°).
 		const a = boat("a", 300, 150, 135);
 		const b = boat("b", 300, 350, 90);
-		const result = evaluate(a, b, WIND_NORTH);
+		const result = evalPair(a, b);
 
-		const rule17 = result.rules.find((r) => r.ruleNumber === 17);
-		expect(rule17?.applicable).toBe(true);
-		expect(rule17?.detail).toContain("17.2");
-		expect(result.appliedRule).toBe(11); // right-of-way decision unchanged
+		const rule172 = result.rules.find((r) => r.id === "17.2");
+		expect(rule172?.applicable).toBe(true);
+		expect(rule172?.detail).toContain("17.2");
+		expect(result.boats.a.obligations.some((o) => o.kind === "notBelowProperCourse")).toBe(true);
+		expect(pairOf(result, a, b).decidingRuleId).toBe("11"); // right-of-way decision unchanged
 	});
 
 	it("does not apply when the boats are more than two hull lengths apart", () => {
@@ -512,9 +675,43 @@ describe("evaluate — Rule 17 (On the Same Tack; Proper Course)", () => {
 		// (> TWO_HULL_LENGTHS ≈ 323px).
 		const a = boat("a", 300, 100, 45);
 		const b = boat("b", 300, 700, 30);
-		const result = evaluate(a, b, WIND_NORTH, {establishedLeewardB: true});
+		const result = evalPair(a, b, WIND_NORTH, {leewardFromAstern: {[pairKey("a", "b")]: {b: true}}});
 
-		expect(result.rules.find((r) => r.ruleNumber === 17)?.applicable).toBe(false);
+		expect(isApplicable(result, "17.1")).toBe(false);
+		expect(isApplicable(result, "17.2")).toBe(false);
+	});
+});
+
+describe("evaluate — obligations beyond keepClear (stub rule)", () => {
+	it("lets the Rule 11 right-of-way boat keep right of way while owing giveMarkRoom", () => {
+		// Stub for a future Section C rule: the right-of-way boat owes mark-room.
+		const stub: RuleDefinition = {
+			id: "18.stub",
+			part: 2,
+			section: "C",
+			scope: "pair",
+			needsRightOfWay: true,
+			title: "Stub mark-room",
+			description: "",
+			fullText: "",
+			laymanExplanation: "",
+			evaluate: ({pair, rightOfWay}) => {
+				if (!pair || !rightOfWay) return [];
+				const other = pair.a.id === rightOfWay ? pair.b.id : pair.a.id;
+				return [{ruleId: "18.stub", boat: rightOfWay, towards: other, kind: "giveMarkRoom", detail: "stub mark-room"}];
+			},
+		};
+		const windward = boat("windward", 300, 150, 90);
+		const leeward = boat("leeward", 300, 350, 90);
+		const world = worldOf([windward, leeward]);
+		const result = evaluate(world, computeFacts(world), {}, undefined, [...RULE_REGISTRY, stub]);
+
+		const pair = pairOf(result, windward, leeward);
+		expect(pair.decidingRuleId).toBe("11");
+		expect(pair.rightOfWay).toBe("leeward"); // still has right of way...
+		expect(result.boats.leeward.standOn).toBe(true);
+		expect(duties(result, "leeward")).toMatchObject([{ruleId: "18.stub", kind: "giveMarkRoom", towards: "windward"}]); // ...yet owes mark-room
+		expect(isApplicable(result, "18.stub")).toBe(true);
 	});
 });
 
