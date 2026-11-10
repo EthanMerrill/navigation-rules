@@ -19,3 +19,4 @@ export * from "./memory";
 export * from "./step";
 export * from "./obstructionFacts";
 export * from "./hails";
+export * from "./exoneration";

@@ -30,3 +30,19 @@ export function obligationLabel(obligation: Obligation): string {
 export function obligationLabels(obligations: Obligation[]): string[] {
 	return [...new Set(obligations.map(obligationLabel))];
 }
+
+/** A label for a boat tag; `exonerated` when every obligation reading this way is exonerated (Rule 21). */
+export interface ObligationTag {
+	label: string;
+	exonerated: boolean;
+}
+
+/** Unique tags for a boat's obligations, in order, noting which are exonerated. */
+export function obligationTags(obligations: Obligation[]): ObligationTag[] {
+	const tags = new Map<string, boolean>();
+	for (const o of obligations) {
+		const label = obligationLabel(o);
+		tags.set(label, (tags.get(label) ?? true) && o.exoneratedBy !== undefined);
+	}
+	return [...tags].map(([label, exonerated]) => ({label, exonerated}));
+}

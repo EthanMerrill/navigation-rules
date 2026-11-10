@@ -501,6 +501,11 @@
 	margin: 2px;
 }
 
+.obligation-tag--exonerated {
+	background: #b9a3c4;
+	opacity: 0.75;
+}
+
 .head-to-wind-tag {
 	background: #c5c5c5;
 	border: 1px solid #8b8b8b;

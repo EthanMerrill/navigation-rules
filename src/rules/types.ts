@@ -25,6 +25,12 @@ export interface Obligation {
 	kind: ObligationKind;
 	/** Human-readable explanation of why this obligation exists right now. */
 	detail: string;
+	/**
+	 * Set by the evaluator when the boat is exonerated for breaking this duty
+	 * (Rule 21). Exoneration protects against a penalty only: the obligation
+	 * stays in place and still counts for right of way.
+	 */
+	exoneratedBy?: RuleId;
 }
 
 /**
@@ -84,7 +90,12 @@ export interface RuleDefinition {
 	id: RuleId;
 	part: 2;
 	section: "A" | "B" | "C" | "D";
-	/** Run once per pair of boats, once per boat, once per world, or never (reference only). */
+	/**
+	 * Run once per pair of boats, once per boat, once per world, or never (reference only).
+	 * Rule 21 (exoneration) is registered with scope "all" and an empty predicate: it
+	 * does not emit obligations of its own. `evaluate` applies it as a post-pass over the
+	 * surviving obligations of each pair (`exoneration.ts`), marking them `exoneratedBy`.
+	 */
 	scope: "pair" | "boat" | "all" | "reference";
 	/** Rules that do not apply to a pair while this rule fires for it (Rule 13 → 10, 11, 12). */
 	suspends?: RuleId[];

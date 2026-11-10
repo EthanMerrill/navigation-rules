@@ -5,7 +5,7 @@ import type {BoatState} from "../model/world";
 import {BoatView, PointOfSail} from "../rules/rulesEngine";
 import type {WorldAction} from "../state/worldReducer";
 import {centerFromWrapperOrigin, wrapperOrigin} from "../view/scale";
-import {obligationLabels} from "../ui/obligationLabels";
+import {obligationTags} from "../ui/obligationLabels";
 
 export interface ImoveableBoatProps {
 	boatState: BoatState;
@@ -129,9 +129,9 @@ const MoveableBoat = (props: ImoveableBoatProps) => {
 				<div className="point-of-sail-tag">
 					<p className="text-tag">{POINT_OF_SAIL_LABELS[boatView.pointOfSail]}</p>
 				</div>
-				{obligationLabels(boatView.obligations).map((label) => (
-					<div className="obligation-tag" key={label}>
-						<p className="text-tag">{label}</p>
+				{obligationTags(boatView.obligations).map(({label, exonerated}) => (
+					<div className={exonerated ? "obligation-tag obligation-tag--exonerated" : "obligation-tag"} key={label} title={exonerated ? "Exonerated (Rule 21)" : undefined}>
+						<p className="text-tag">{exonerated ? `${label} (exonerated)` : label}</p>
 					</div>
 				))}
 				{boatView.windwardOf.length > 0 && (

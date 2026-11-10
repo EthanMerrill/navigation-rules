@@ -229,6 +229,18 @@ const EVALUABLE_CONTENT: RuleContent[] = [
 		note: "Hails are made with the hail controls and stay until cleared (they do not expire). A hail is valid when the hailer is close-hauled or above, on the same tack as the hailed boat, and approaching an obstruction; the need for a substantial course change is not modelled. Rule 20.1 (validity) and 20.3 (passing the hail on) have no cards of their own.",
 		noteShort: "Valid hail: close-hauled, same tack, approaching an obstruction.",
 	},
+	{
+		id: "21",
+		part: 2,
+		section: "D",
+		evaluable: true,
+		title: "Exoneration",
+		description: "A boat sailing within the room or mark-room she is entitled to is exonerated if she breaks a Section A rule, rule 15 or 16 in an incident with the boat that must give it.",
+		fullText: "", // TODO: official text of rule 21
+		laymanExplanation: "If you are entitled to room or mark-room and, while sailing within it, you break one of the right-of-way rules (for example you fail to keep clear) in an incident with the boat that owed you that room, you are not penalised. Being exonerated does not give you right of way; it only protects you from a penalty.",
+		note: "Applied after the other rules: whenever one boat owes room or mark-room to another, the other boat's Rule 10, 11, 12, 13, 15 or 16 duty towards her is shown as exonerated. Whether she is actually sailing within the room is not checked, and rule 31 is not modelled.",
+		noteShort: "Marks the entitled boat's right-of-way duties as exonerated.",
+	},
 ];
 
 /**
@@ -248,7 +260,6 @@ const REFERENCE_CONTENT: RuleContent[] = [
 	{id: "20", part: 2, section: "C", evaluable: false, title: "Room to Tack at an Obstruction", description: "A boat may hail for room to tack to avoid an obstruction.", fullText: "", laymanExplanation: "A boat sailing close-hauled that needs to tack to avoid an obstruction may hail for room, and the hailed boat must respond."},
 	{id: "20.1", part: 2, section: "C", evaluable: false, title: "Hailing", description: "A boat close-hauled or above, approaching an obstruction, may hail for room to tack and avoid a boat on the same tack.", fullText: "", laymanExplanation: "The hailing boat calls for room to tack, and must be ready to tack at once. A hail is only valid when she is sailing close-hauled or above, is approaching an obstruction and needs a substantial course change to avoid it safely. The simulator checks the first two when deciding whether a hail has any effect (see rule 20.2)."},
 	{id: "20.3", part: 2, section: "C", evaluable: false, title: "Passing Head to Wind", description: "Limits on how a hailing boat tacks and on the hailed boat.", fullText: "", laymanExplanation: "After the hailing boat tacks, the hailed boat may no longer have to respond, and the hailing boat must tack promptly."},
-	{id: "21", part: 2, section: "D", evaluable: false, title: "Exoneration", description: "A boat that breaks a rule while entitled to room or mark-room is exonerated.", fullText: "", laymanExplanation: "If a boat breaks a rule of Section A while sailing within the room or mark-room she is entitled to, she is not penalised for it."},
 	{id: "22", part: 2, section: "D", evaluable: false, title: "Starting Errors; Taking Penalties; Backing a Sail", description: "Boats returning to start, taking a penalty or backing a sail must keep clear.", fullText: "", laymanExplanation: "A boat that is returning to the pre-start side, taking a penalty, or moving astern by backing a sail has to keep clear of other boats."},
 	{id: "23", part: 2, section: "D", evaluable: false, title: "Capsized, Anchored or Aground; Rescuing", description: "A boat that is capsized, anchored, aground or rescuing must be kept clear of.", fullText: "", laymanExplanation: "Boats should keep clear of a boat that is capsized, anchored or aground, or is rescuing a person or vessel."},
 	{id: "24", part: 2, section: "D", evaluable: false, title: "Interfering with Another Boat", description: "A boat not racing must not interfere with a boat that is racing.", fullText: "", laymanExplanation: "A boat that is not racing must keep clear of boats that are, and boats must not interfere with another boat sailing a course she is entitled to."},
