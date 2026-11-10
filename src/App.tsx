@@ -1,4 +1,4 @@
-import {useEffect, useReducer, useRef} from "react";
+import {useEffect, useReducer, useRef, useState} from "react";
 import "./App.css";
 import "./styles/styles.css";
 import RulesSidebar from "./components/RulesSidebar";
@@ -23,15 +23,22 @@ function App() {
 	const isFirstRoute = useRef(true);
 	const scenarioId = useScenarioRoute();
 	const [world, dispatch] = useReducer(worldReducer, scenarioId, worldForRoute);
+	// Bumped whenever a scenario is loaded, so the rules engine starts from empty memory.
+	const [epoch, setEpoch] = useState(0);
+
+	const loadRoute = () => {
+		dispatch({type: "loadScenario", world: worldForRoute(scenarioId)});
+		setEpoch((n) => n + 1);
+	};
 
 	// Load the routed scenario whenever the route changes. The initial world
 	// already matches the first route, so skip the first run.
 	useEffect(() => {
-		if (!isFirstRoute.current) dispatch({type: "loadScenario", world: worldForRoute(scenarioId)});
+		if (!isFirstRoute.current) loadRoute();
 		isFirstRoute.current = false;
 	}, [scenarioId]);
 
-	const evaluation = useRulesEngine(world);
+	const evaluation = useRulesEngine(world, epoch);
 	const focusPair = evaluation.focusPair ? evaluation.pairs[evaluation.focusPair] : null;
 	const focusA = focusPair && world.boats.find((boat) => boat.id === focusPair.a);
 	const focusB = focusPair && world.boats.find((boat) => boat.id === focusPair.b);
@@ -47,7 +54,7 @@ function App() {
 				onScenarioChange={(id) => {
 					window.location.hash = id ? scenarioHash(id) : "";
 				}}
-				onReset={() => dispatch({type: "loadScenario", world: worldForRoute(scenarioId)})}
+				onReset={loadRoute}
 			/>
 			<RulesSidebar evaluation={evaluation} />
 			{world.obstructions.map((obstruction) => (

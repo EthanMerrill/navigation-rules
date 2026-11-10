@@ -12,15 +12,23 @@ import {EngineMemory, RuleEvaluation, step} from "../rules/rulesEngine";
  * StrictMode's double render): a render that is discarded never advances the
  * engine. Because effects run before the next world change can render, the
  * next `step` always sees the memory from the last committed frame.
+ *
+ * `epoch` identifies the "run" of worlds the memory belongs to. When it changes
+ * (a scenario was loaded), the step starts from empty memory so history from an
+ * unrelated world cannot leak in, e.g. as a spurious Rule 15 "right of way
+ * changed hands".
  */
-export function useRulesEngine(world: WorldState): RuleEvaluation {
-	const memoryRef = useRef<EngineMemory | null>(null);
+export function useRulesEngine(world: WorldState, epoch = 0): RuleEvaluation {
+	const memoryRef = useRef<{epoch: number; memory: EngineMemory | null}>({epoch, memory: null});
 
-	const result = useMemo(() => step(world, memoryRef.current, performance.now()), [world]);
+	const result = useMemo(() => {
+		const stored = memoryRef.current;
+		return step(world, stored.epoch === epoch ? stored.memory : null, performance.now());
+	}, [world, epoch]);
 
 	useEffect(() => {
-		memoryRef.current = result.memory;
-	}, [result]);
+		memoryRef.current = {epoch, memory: result.memory};
+	}, [result, epoch]);
 
 	return result.evaluation;
 }
