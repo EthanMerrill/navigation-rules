@@ -132,7 +132,7 @@ const MoveableBoat = (props: ImoveableBoatProps) => {
 						<p className="text-tag">Head to wind</p>
 					</div>
 				)}
-				{boatState.tacking && (
+				{boatView.tacking && (
 					<div className="tacking-tag">
 						<p className="text-tag">Tacking</p>
 					</div>

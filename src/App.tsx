@@ -20,7 +20,7 @@ function App() {
 		<div className="App">
 			<div className="patterns pt1"></div>
 			<style>@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');</style>
-			<AppHeader wind={world.wind} onWindChange={(direction) => dispatch({type: "setWind", direction})} boats={world.boats} onToggleTacking={(id) => dispatch({type: "toggleTacking", id})} />
+			<AppHeader wind={world.wind} onWindChange={(direction) => dispatch({type: "setWind", direction})} />
 			<RulesSidebar evaluation={evaluation} />
 			{world.boats.map((boat) => (
 				<div className="draggable" key={boat.id}>

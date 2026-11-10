@@ -28,7 +28,7 @@ export interface Obligation {
 /**
  * History the evaluator needs for the time-dependent rules (13, 15, 16, 17.1).
  * Everything is keyed by boat id or pair key; all fields are optional so a
- * stateless evaluation can pass `{}`. Phase 3 replaces this with engine memory.
+ * stateless evaluation can pass `{}`. `step` builds it from engine memory (`memory.ts`).
  */
 export interface EngineHistory {
 	/** Pair key → boat id that had right of way last evaluation (`null`: none, absent: unseen). */
@@ -88,11 +88,6 @@ export interface RuleDefinition {
 	fullText: string;
 	/** A plain-English explanation of what the rule means. */
 	laymanExplanation: string;
-	/**
-	 * For transient limitation rules (15, 16): how long the rule stays "cooling
-	 * down" (in ms) after it fires. Phase 3 moves this into UI config.
-	 */
-	cooldownMs?: number;
 	/** A development note describing a known approximation/constraint in this rule. */
 	note?: string;
 	/** A shorter version of `note`, shown on the rule card while it is active. */
@@ -107,6 +102,8 @@ export interface BoatView {
 	pointOfSail: PointOfSail;
 	/** Boom angle (degrees) off the centreline, 0 = pulled in, ~85 = let right out. */
 	sailTrimAngle: number;
+	/** True while the boat is tacking (Rule 13). */
+	tacking: boolean;
 	/** True when this boat owes no keepClear obligation to any boat. */
 	standOn: boolean;
 	/** All obligations this boat owes. */
@@ -133,6 +130,8 @@ export interface PairView {
 	overlapped: boolean | null;
 	/** True when the boats' hulls overlap — a collision (Rule 14). */
 	collided: boolean;
+	/** Perimeter-to-perimeter distance between the hulls, in hull lengths; negative when they overlap. */
+	separation: number;
 	/** Obligations surviving suspension in this pair. */
 	obligations: Obligation[];
 }
@@ -153,7 +152,6 @@ export interface RuleState {
 	deciding: boolean;
 	/** Why the rule applies (empty when it does not). */
 	detail: string;
-	cooldownMs?: number;
 	note?: string;
 	noteShort?: string;
 }

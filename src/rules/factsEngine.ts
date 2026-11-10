@@ -75,6 +75,12 @@ export interface BoatFacts {
 	pointOfSail: PointOfSail;
 	/** Boom angle off the centreline, in degrees. */
 	sailTrimAngle: number;
+	/**
+	 * True while the boat is tacking (Rule 13): from coming out of head-to-wind
+	 * on the other tack until close-hauled. Needs history, so `computeFacts`
+	 * reports false and `step` fills it in from engine memory.
+	 */
+	tacking: boolean;
 }
 
 /**
@@ -97,15 +103,6 @@ export interface WorldFacts {
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
-
-/**
- * Separation below which boats are at risk of contact (Rule 14), in hull
- * lengths (≈ 300px at the default view scale).
- */
-export const CONTACT_RISK_DISTANCE = 300 / 161.5;
-
-/** How long a transient limitation rule (15, 16) stays applied after it fires. */
-export const LIMITATION_RULE_COOLDOWN_MS = 10000;
 
 /**
  * The closest angle a boat can point to the wind while sailing (a simplification
@@ -653,6 +650,7 @@ function computeBoatFacts(boat: BoatState, wind: WindState, prevTack?: Tack | nu
 		tack: getTack(boat.heading, wind.direction) ?? prevTack ?? null,
 		pointOfSail: getPointOfSail(boat.heading, wind.direction),
 		sailTrimAngle: getSailTrimAngle(boat.heading, wind.direction),
+		tacking: false,
 	};
 }
 

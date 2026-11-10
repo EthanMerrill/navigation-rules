@@ -4,6 +4,7 @@
  * - `types.ts`: obligations, rule definitions and evaluation output shapes.
  * - `registry.ts`: the rule definitions (Part 2, Sections A & B).
  * - `evaluate.ts`: runs the registry over a world, applying rule suspension.
+ * - `memory.ts` / `step.ts`: engine memory and the pure per-frame `step` function.
  *
  * Re-exported here so consumers can import every symbol from one place.
  */
@@ -12,3 +13,5 @@ export * from "./factsEngine";
 export * from "./types";
 export * from "./registry";
 export * from "./evaluate";
+export * from "./memory";
+export * from "./step";

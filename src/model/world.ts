@@ -18,8 +18,6 @@ export interface BoatState {
 	y: number;
 	/** Heading in degrees (0 = up, clockwise positive). */
 	heading: number;
-	/** True while the boat is in the act of tacking (passed head-to-wind, Rule 13). */
-	tacking: boolean;
 	/** Index into `course.legs` of the leg this boat is currently sailing. */
 	nextLegIndex: number;
 }

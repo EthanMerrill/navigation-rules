@@ -3,6 +3,7 @@ import {motion} from "motion/react";
 import "../styles/styles.css";
 import {RuleEvaluation, RuleState, compareRuleIds} from "../rules/rulesEngine";
 import {CooldownState, useCooldowns} from "../hooks/useCooldowns";
+import {displayOf, isShownApplicable} from "../ui/ruleDisplay";
 import RuleModal from "./RuleModal";
 
 interface RulesSidebarProps {
@@ -13,6 +14,11 @@ const RulesSidebar = ({evaluation}: RulesSidebarProps) => {
 	const [selectedRule, setSelectedRule] = useState<RuleState | null>(null);
 	const cooldowns = useCooldowns(evaluation);
 
+	// Rules that always apply (Rule 14) only count as applicable in the sidebar
+	// when the focus pair is close or has collided.
+	const focusPair = evaluation.focusPair ? evaluation.pairs[evaluation.focusPair] : null;
+	const shownRules = useMemo(() => evaluation.rules.map((rule) => ({...rule, applicable: isShownApplicable(rule, focusPair)})), [evaluation.rules, focusPair]);
+
 	// A cooling-down rule is no longer engine-applicable (so the engine sorts it
 	// with the inactive rules), but the UI still shows it as active. Re-order so
 	// it stays in the active group, at the bottom of the active rules.
@@ -20,12 +26,12 @@ const RulesSidebar = ({evaluation}: RulesSidebarProps) => {
 		const isActive = (rule: RuleState) => rule.applicable || cooldowns[rule.id]?.active === true;
 		const byId = (a: RuleState, b: RuleState) => compareRuleIds(a.id, b.id);
 
-		const deciding = evaluation.rules.filter((rule) => rule.deciding);
-		const active = evaluation.rules.filter((rule) => !rule.deciding && isActive(rule)).sort(byId);
-		const inactive = evaluation.rules.filter((rule) => !rule.deciding && !isActive(rule)).sort(byId);
+		const deciding = shownRules.filter((rule) => rule.deciding);
+		const active = shownRules.filter((rule) => !rule.deciding && isActive(rule)).sort(byId);
+		const inactive = shownRules.filter((rule) => !rule.deciding && !isActive(rule)).sort(byId);
 
 		return [...deciding, ...active, ...inactive];
-	}, [evaluation.rules, cooldowns]);
+	}, [shownRules, cooldowns]);
 
 	const collided = Object.values(evaluation.pairs).some((pair) => pair.collided);
 
@@ -37,7 +43,7 @@ const RulesSidebar = ({evaluation}: RulesSidebarProps) => {
 			</div>
 			<div className="rules-sidebar__content">
 				{orderedRules.map((rule) => (
-					<RuleCard key={rule.id} rule={rule} collided={collided} cooldown={rule.cooldownMs !== undefined ? cooldowns[rule.id] : undefined} onSelect={setSelectedRule} />
+					<RuleCard key={rule.id} rule={rule} collided={collided} cooldown={displayOf(rule.id).cooldownMs !== undefined ? cooldowns[rule.id] : undefined} onSelect={setSelectedRule} />
 				))}
 			</div>
 			<RuleModal rule={selectedRule} onClose={() => setSelectedRule(null)} />

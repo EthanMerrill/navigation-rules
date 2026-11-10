@@ -10,7 +10,8 @@
  * - Rule 11 (On the Same Tack, Overlapped): the windward boat keeps clear of the leeward boat.
  * - Rule 12 (On the Same Tack, Not Overlapped): the boat clear astern keeps clear.
  * - Rule 13 (While Tacking): keep clear until close-hauled; suspends 10, 11 and 12.
- * - Rule 14 (Avoiding Contact): a duty on both boats; broken by a collision.
+ * - Rule 14 (Avoiding Contact): a duty on both boats whenever they meet; broken by a collision.
+ *   (How close is "close" for display purposes is UI config, see `ui/ruleDisplay.ts`.)
  * - Rule 15 (Acquiring Right of Way): the new right-of-way boat gives room.
  * - Rule 16 (Changing Course): a right-of-way boat that turns gives room.
  * - Rule 17.1 / 17.2 (Proper Course): limits on a leeward boat that came from
@@ -18,7 +19,7 @@
  */
 
 import type {BoatState} from "../model/world";
-import {CONTACT_RISK_DISTANCE, LIMITATION_RULE_COOLDOWN_MS, TWO_HULL_LENGTHS, getPointOfSail, headingVector, inferProperCourse, isClearAstern, isSailingAboveProperCourse, isSailingBelowProperCourse} from "./factsEngine";
+import {TWO_HULL_LENGTHS, getPointOfSail, headingVector, inferProperCourse, isClearAstern, isSailingAboveProperCourse, isSailingBelowProperCourse} from "./factsEngine";
 import type {EvalContext, Obligation, PairContext, PairEvalContext, RuleDefinition} from "./types";
 
 /** Adapt a pair-scope predicate: it only runs when the context carries a pair. */
@@ -157,14 +158,16 @@ export const RULE_REGISTRY: RuleDefinition[] = [
 			"After a boat passes head to wind, she shall keep clear of other boats until she is on a close-hauled course. During that time rules 10, 11 and 12 do not apply. If two boats are subject to this rule at the same time, the one on the other's port side or the one astern shall keep clear.",
 		laymanExplanation:
 			"A boat that is turning through the wind (changing from one tack to the other) loses its normal rights and must stay out of everyone's way until it has finished the turn and is sailing normally again. While it is turning, the usual port/starboard and windward/leeward rules do not apply to it.",
-		evaluate: onPair(({pair}) => {
+		evaluate: onPair(({pair, facts}) => {
 			const {a, b} = pair;
-			if (!a.tacking && !b.tacking) return [];
+			const aTacking = facts.boats[a.id].tacking;
+			const bTacking = facts.boats[b.id].tacking;
+			if (!aTacking && !bTacking) return [];
 
-			const keepClear = a.tacking && b.tacking ? bothTackingKeepClear(a, b) : [a.tacking ? a.id : b.id];
+			const keepClear = aTacking && bTacking ? bothTackingKeepClear(a, b) : [aTacking ? a.id : b.id];
 			return keepClear.map((id): Obligation => {
 				const other = otherOf(pair, id);
-				const detail = a.tacking && b.tacking ? `Rule 13 — Both ${a.id} and ${b.id} are tacking; ${id} is ${keepClear.length === 1 ? "on the other's port side or astern, so she" : "not separated by either test, so both"} must keep clear.` : `Rule 13 — ${id} is tacking and must keep clear of ${other.id}.`;
+				const detail = aTacking && bTacking ? `Rule 13 — Both ${a.id} and ${b.id} are tacking; ${id} is ${keepClear.length === 1 ? "on the other's port side or astern, so she" : "not separated by either test, so both"} must keep clear.` : `Rule 13 — ${id} is tacking and must keep clear of ${other.id}.`;
 				return {ruleId: "13", boat: id, towards: other.id, kind: "keepClear", detail};
 			});
 		}),
@@ -181,7 +184,6 @@ export const RULE_REGISTRY: RuleDefinition[] = [
 		laymanExplanation: "Both boats must always try not to collide. When they get close together, avoiding contact becomes everyone's responsibility — even the boat with right of way has to act if a crash is about to happen.",
 		evaluate: onPair(({pair}) => {
 			const f = pair.facts;
-			if (!f.collided && f.separation >= CONTACT_RISK_DISTANCE) return [];
 			const detail = f.collided ? `Collision — the hulls overlap by ${(-f.separation).toFixed(2)} hull lengths. Both boats must avoid contact.` : `Boats are ${f.separation.toFixed(2)} hull lengths apart — both must act to avoid contact.`;
 			return [
 				{ruleId: "14", boat: pair.a.id, towards: pair.b.id, kind: "avoidContact", detail},
@@ -199,7 +201,6 @@ export const RULE_REGISTRY: RuleDefinition[] = [
 		description: "When a boat acquires right of way, she shall initially give the other boat room to keep clear.",
 		fullText: "When a boat acquires right of way, she shall initially give the other boat room to keep clear. She shall not sail to change course to sail a course that would immediately require the other boat to take avoiding action.",
 		laymanExplanation: "When you have just gained the right of way, you can't press your advantage straight away — you must first give the other boat enough room to get out of your way.",
-		cooldownMs: LIMITATION_RULE_COOLDOWN_MS,
 		evaluate: onPair(({pair, history, rightOfWay}) => {
 			const prev = history.prevRightOfWay?.[pair.key];
 			if (!rightOfWay || !prev || prev === rightOfWay) return [];
@@ -226,7 +227,6 @@ export const RULE_REGISTRY: RuleDefinition[] = [
 		fullText:
 			"When a right-of-way boat changes course, she shall give the other boat room to keep clear. In addition, when after the starting signal a port-tack boat is keeping clear by sailing to pass astern of a starboard-tack boat, the starboard-tack boat shall not change course if as a result the port-tack boat would immediately need to change course to continue keeping clear.",
 		laymanExplanation: "Even if you have right of way, you cannot suddenly alter course into the other boat — if you change direction, you must leave them room to stay clear.",
-		cooldownMs: LIMITATION_RULE_COOLDOWN_MS,
 		evaluate: onPair(({pair, history, rightOfWay}) => {
 			if (!rightOfWay || !history.changingCourse?.[rightOfWay]) return [];
 			const other = otherOf(pair, rightOfWay);

@@ -1,5 +1,6 @@
 import type {BoatState, WindState, WorldState} from "../model/world";
-import type {EngineHistory, PairView, RuleDefinition, RuleEvaluation} from "./types";
+import type {EngineHistory, PairView, RuleDefinition, RuleEvaluation, RuleState} from "./types";
+import {CONTACT_RISK_DISTANCE, isShownApplicable} from "../ui/ruleDisplay";
 import {PX_PER_HULL_LENGTH, toWorld} from "../view/scale";
 import {worldReducer, createDefaultWorld} from "../state/worldReducer";
 import {TWO_HULL_LENGTHS, HULL_ACTUAL_LENGTH, HULL_FOREMOST_OFFSET, HULL_AFTERMOST_OFFSET, computeFacts, computeMeetingFacts, pairKey, areOnSameTack, boatPerimeterDistance, compareRuleIds, evaluate, RULE_REGISTRY, getAheadBoat, getHullVertices, getPointOfSail, getSailTrimAngle, getTack, getTransomLine, getWindAngle, getWindwardBoat, inferProperCourse, isClearAstern, isOverlapped, isSailingAboveProperCourse, isSailingBelowProperCourse} from "./rulesEngine";
@@ -7,10 +8,15 @@ import {TWO_HULL_LENGTHS, HULL_ACTUAL_LENGTH, HULL_FOREMOST_OFFSET, HULL_AFTERMO
 // All tests use wind blowing FROM the north (0°), i.e. down the screen.
 const WIND_NORTH: WindState = {direction: 0};
 
+/** Boats built with `tacking = true`; `evalBoats` marks them as tacking in the facts (tacking is derived by `step`). */
+const tackingBoats = new WeakSet<BoatState>();
+
 /** Build a boat from PIXEL coordinates (converted to world units via `toWorld`). */
 function boat(id: string, xPx: number, yPx: number, heading: number, tacking = false): BoatState {
 	const p = toWorld({x: xPx, y: yPx});
-	return {id, x: p.x, y: p.y, heading, tacking, nextLegIndex: 0};
+	const b: BoatState = {id, x: p.x, y: p.y, heading, nextLegIndex: 0};
+	if (tacking) tackingBoats.add(b);
+	return b;
 }
 
 /** Alias of `boat` that makes the pixel input explicit. */
@@ -27,7 +33,9 @@ function worldOf(boats: BoatState[], wind: WindState = WIND_NORTH): WorldState {
 /** Evaluate any number of boats (facts computed once, as the hook does). */
 function evalBoats(boats: BoatState[], history: EngineHistory = {}, focusPair?: string, wind: WindState = WIND_NORTH): RuleEvaluation {
 	const world = worldOf(boats, wind);
-	return evaluate(world, computeFacts(world), history, focusPair);
+	const facts = computeFacts(world);
+	for (const b of boats) if (tackingBoats.has(b)) facts.boats[b.id].tacking = true;
+	return evaluate(world, facts, history, focusPair);
 }
 
 /** Evaluate a two-boat world. */
@@ -556,12 +564,20 @@ describe("evaluate — Rule 14 (Avoiding Contact)", () => {
 		expect(pairOf(result, a, b).decidingRuleId).toBe("11");
 	});
 
-	it("does not apply when boats are far apart", () => {
-		const a = boat("a", 100, 100, 90);
-		const b = boat("b", 900, 100, 90); // hulls 600px apart
-		const result = evalPair(a, b);
+	it("always applies in the engine, but the sidebar only shows it when boats are close", () => {
+		const farA = boat("a", 100, 100, 90);
+		const farB = boat("b", 900, 100, 90); // hulls 600px apart
+		const far = evalPair(farA, farB);
+		expect(isApplicable(far, "14")).toBe(true);
+		expect(pairOf(far, farA, farB).separation).toBeGreaterThan(CONTACT_RISK_DISTANCE);
 
-		expect(isApplicable(result, "14")).toBe(false);
+		const rule14 = far.rules.find((r) => r.id === "14") as RuleState;
+		expect(isShownApplicable(rule14, pairOf(far, farA, farB))).toBe(false);
+
+		const nearA = boat("a", 300, 150, 90);
+		const nearB = boat("b", 300, 350, 90);
+		const near = evalPair(nearA, nearB);
+		expect(isShownApplicable(near.rules.find((r) => r.id === "14") as RuleState, pairOf(near, nearA, nearB))).toBe(true);
 	});
 
 	it("flags a collision (overlapping hulls) without changing right of way", () => {
@@ -804,14 +820,10 @@ describe("worldReducer", () => {
 		expect(rotated.boats[0].heading).toBe(90);
 	});
 
-	it("sets wind, toggles tacking and sets the next leg", () => {
+	it("sets wind and sets the next leg", () => {
 		let world = createDefaultWorld();
 		world = worldReducer(world, {type: "setWind", direction: 135});
 		expect(world.wind.direction).toBe(135);
-		world = worldReducer(world, {type: "toggleTacking", id: "boat2"});
-		expect(world.boats[1].tacking).toBe(true);
-		world = worldReducer(world, {type: "toggleTacking", id: "boat2"});
-		expect(world.boats[1].tacking).toBe(false);
 		world = worldReducer(world, {type: "setNextLeg", id: "boat1", legIndex: 2});
 		expect(world.boats[0].nextLegIndex).toBe(2);
 	});

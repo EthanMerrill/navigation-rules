@@ -1,9 +1,10 @@
 import {useEffect, useRef, useState} from "react";
 import type {RuleEvaluation} from "../rules/rulesEngine";
+import {displayOf} from "../ui/ruleDisplay";
 
 /** Snapshot of a single rule's cooldown, keyed by rule id. */
 export interface CooldownState {
-	/** Cooldown duration in ms (copied from the rule definition). */
+	/** Cooldown duration in ms (from `RULE_DISPLAY`). */
 	durationMs: number;
 	/** True while the rule is latched as "still applying" (cooling down). */
 	active: boolean;
@@ -25,7 +26,7 @@ export function useCooldowns(evaluation: RuleEvaluation): Record<string, Cooldow
 
 	useEffect(() => {
 		for (const rule of evaluation.rules) {
-			const durationMs = rule.cooldownMs;
+			const durationMs = displayOf(rule.id).cooldownMs;
 			if (durationMs === undefined) continue;
 
 			const ruleNumber = rule.id;

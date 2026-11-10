@@ -1,10 +1,8 @@
-import type {BoatState, WindState} from "../model/world";
+import type {WindState} from "../model/world";
 
 interface AppHeaderProps {
 	wind: WindState;
 	onWindChange: (direction: number) => void;
-	boats: BoatState[];
-	onToggleTacking: (boatId: string) => void;
 }
 
 const COMPASS_POINTS = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"] as const;
@@ -21,7 +19,7 @@ function compassLabel(direction: number): string {
 	return COMPASS_POINTS[idx];
 }
 
-const AppHeader = ({wind, onWindChange, boats, onToggleTacking}: AppHeaderProps) => {
+const AppHeader = ({wind, onWindChange}: AppHeaderProps) => {
 	return (
 		<header className="app-header">
 			<div className="control-bar">
@@ -41,14 +39,6 @@ const AppHeader = ({wind, onWindChange, boats, onToggleTacking}: AppHeaderProps)
 							</button>
 						))}
 					</div>
-				</div>
-				<div className="control-row">
-					<span className="control-label">Tacking</span>
-					{boats.map((boat) => (
-						<button key={boat.id} type="button" className={`tacking-toggle${boat.tacking ? " tacking-toggle--active" : ""}`} onClick={() => onToggleTacking(boat.id)}>
-							{boat.id} {boat.tacking ? "is tacking" : "not tacking"}
-						</button>
-					))}
 				</div>
 			</div>
 		</header>

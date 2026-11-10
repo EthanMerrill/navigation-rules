@@ -125,6 +125,7 @@ export function evaluate(world: WorldState, facts: WorldFacts, history: EngineHi
 			sameTack: pf.sameTack,
 			overlapped: pf.overlapped,
 			collided: pf.collided,
+			separation: pf.separation,
 			obligations: pairObligations,
 		};
 	}
@@ -147,6 +148,7 @@ export function evaluate(world: WorldState, facts: WorldFacts, history: EngineHi
 			tack: bf.tack,
 			pointOfSail: bf.pointOfSail,
 			sailTrimAngle: bf.sailTrimAngle,
+			tacking: bf.tacking,
 			standOn: !owned.some((o) => o.kind === "keepClear"),
 			obligations: owned,
 			windwardOf,
@@ -168,7 +170,6 @@ export function evaluate(world: WorldState, facts: WorldFacts, history: EngineHi
 			applicable: mine.length > 0,
 			deciding: inFocus.some((f) => f.obligations.some((o) => o.kind === "keepClear")),
 			detail: shown?.obligations[0].detail ?? "",
-			cooldownMs: rule.cooldownMs,
 			note: rule.note,
 			noteShort: rule.noteShort,
 		};
