@@ -1,4 +1,4 @@
-import {BoatState, WindState, areOnSameTack, boatPerimeterDistance, evaluate, getHullVertices, getPointOfSail, getSailTrimAngle, getTack, getWindAngle, getWindwardBoat, inferProperCourse, isClearAstern, isOverlapped, isSailingAboveProperCourse, isSailingBelowProperCourse} from "./rulesEngine";
+import {BoatState, WindState, TWO_HULL_LENGTHS, areOnSameTack, boatPerimeterDistance, evaluate, getAheadBoat, getHullVertices, getPointOfSail, getSailTrimAngle, getTack, getTransomLine, getWindAngle, getWindwardBoat, inferProperCourse, isClearAstern, isOverlapped, isSailingAboveProperCourse, isSailingBelowProperCourse} from "./rulesEngine";
 
 // All tests use wind blowing FROM the north (0°), i.e. down the screen.
 const WIND_NORTH: WindState = {direction: 0};
@@ -129,6 +129,23 @@ describe("isClearAstern / isOverlapped", () => {
 		expect(isClearAstern(b, a)).toBe(false);
 		expect(isOverlapped(a, b)).toBe(true);
 	});
+
+	it("treats a boat behind the real transom as clear astern", () => {
+		// ahead heads east (90°). A boat 100px behind its centre is behind the
+		// real transom (~63px astern of centre), so it is clear astern — a centred
+		// 100×200 box approximation would still have called this an overlap.
+		const ahead = boat("ahead", 600, 300, 90);
+		const astern = boat("astern", 500, 300, 90);
+		expect(isClearAstern(astern, ahead)).toBe(true);
+		expect(isOverlapped(ahead, astern)).toBe(false);
+	});
+
+	it("treats a boat within the transom distance as still overlapped", () => {
+		const ahead = boat("ahead", 600, 300, 90);
+		const abreast = boat("abreast", 580, 300, 90); // only 20px behind centre
+		expect(isClearAstern(abreast, ahead)).toBe(false);
+		expect(isOverlapped(ahead, abreast)).toBe(true);
+	});
 });
 
 describe("getWindwardBoat", () => {
@@ -163,6 +180,41 @@ describe("getHullVertices", () => {
 	});
 });
 
+describe("getAheadBoat", () => {
+	it("picks the boat whose bow is further forward, regardless of order", () => {
+		// Both heading east; a is ahead (further +x), b astern.
+		const ahead = boat("ahead", 700, 300, 90);
+		const astern = boat("astern", 500, 300, 90);
+		expect(getAheadBoat(ahead, astern)).toBe("a");
+		expect(getAheadBoat(astern, ahead)).toBe("b");
+	});
+});
+
+describe("getTransomLine", () => {
+	it("runs abeam (vertical) through the transom of an east-heading boat", () => {
+		const b = boat("b", 300, 300, 90);
+		const [p1, p2] = getTransomLine(b, 300);
+
+		// Midpoint is the transom, ~63px astern of centre (west of x=300).
+		expect((p1.x + p2.x) / 2).toBeCloseTo(237, 1);
+		expect((p1.y + p2.y) / 2).toBeCloseTo(300, 1);
+		// Each endpoint is 300px from the transom → line length 600.
+		expect(Math.hypot(p2.x - p1.x, p2.y - p1.y)).toBeCloseTo(600, 1);
+		// Abeam of an east-heading boat is vertical: both ends share x.
+		expect(p1.x).toBeCloseTo(p2.x, 1);
+	});
+
+	it("runs abeam (horizontal) through the transom of a north-heading boat", () => {
+		const b = boat("b", 300, 300, 0);
+		const [p1, p2] = getTransomLine(b, 300);
+
+		// Transom is ~63px astern of centre (south of y=300).
+		expect((p1.y + p2.y) / 2).toBeCloseTo(363, 1);
+		// Abeam of a north-heading boat is horizontal: both ends share y.
+		expect(p1.y).toBeCloseTo(p2.y, 1);
+	});
+});
+
 describe("boatPerimeterDistance", () => {
 	it("measures the gap between the actual hull edges, not the bounding box", () => {
 		// Two boats heading east (90°), 200px centre-to-centre apart vertically.
@@ -187,6 +239,23 @@ describe("boatPerimeterDistance", () => {
 		const d = boatPerimeterDistance(a, b);
 		expect(d).toBeLessThan(0);
 		expect(d).toBeCloseTo(-7.66, 1);
+	});
+});
+
+describe("hull-derived rule distances", () => {
+	it("derives two hull lengths from the real hull (~323px), not the 100×200 box", () => {
+		expect(TWO_HULL_LENGTHS).toBeCloseTo(323, 0);
+	});
+
+	it("Rule 17 stops applying beyond the tightened two-hull-lengths cutoff", () => {
+		// Boats abreast with a ~332px hull-to-hull gap: the old 400px cutoff would
+		// have left the windward beam-reach boat within two hull lengths, but the
+		// real-hull cutoff (~323px) excludes it.
+		const windward = boat("windward", 300, 150, 90);
+		const leeward = boat("leeward", 300, 560, 90);
+		const result = evaluate(windward, leeward, WIND_NORTH);
+		expect(result.rules.find((r) => r.ruleNumber === 17)?.applicable).toBe(false);
+		expect(result.appliedRule).toBe(11); // right-of-way decision unchanged
 	});
 });
 
@@ -386,11 +455,12 @@ describe("evaluate — Rule 16 (Changing Course)", () => {
 
 describe("evaluate — Rule 17 (On the Same Tack; Proper Course)", () => {
 	it("17.1 applies when a leeward boat that came from astern sails above her proper course", () => {
-		// a is windward (north), b is leeward (south); both on port tack.
-		// Proper course is inferred as close-hauled on port tack (45°). b is
-		// pinching up to 30°, i.e. above her proper course.
+		// a is windward (north), b is leeward and abeam to the south-east of a;
+		// both on port tack, so they are overlapped. Proper course is inferred as
+		// close-hauled on port tack (45°); b is pinching up to 30°, i.e. above
+		// her proper course.
 		const a = boat("a", 300, 150, 45);
-		const b = boat("b", 300, 350, 30);
+		const b = boat("b", 441, 291, 30);
 		const result = evaluate(a, b, WIND_NORTH, {establishedLeewardB: true});
 
 		const rule17 = result.rules.find((r) => r.ruleNumber === 17);
@@ -424,7 +494,7 @@ describe("evaluate — Rule 17 (On the Same Tack; Proper Course)", () => {
 
 	it("does not apply when the boats are more than two hull lengths apart", () => {
 		// b came from astern and sails above proper course, but they are 600px apart
-		// (> TWO_HULL_LENGTHS = 400).
+		// (> TWO_HULL_LENGTHS ≈ 323px).
 		const a = boat("a", 300, 100, 45);
 		const b = boat("b", 300, 700, 30);
 		const result = evaluate(a, b, WIND_NORTH, {establishedLeewardB: true});

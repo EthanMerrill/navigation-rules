@@ -4,6 +4,7 @@ import "./styles/styles.css";
 import RulesSidebar from "./components/RulesSidebar";
 import AppHeader from "./components/AppHeader";
 import MoveableBoat from "./components/MoveableBoat";
+import TransomLineOverlay from "./components/TransomLineOverlay";
 import {BoatState, WindState} from "./rules/rulesEngine";
 import {useRulesEngine} from "./hooks/useRulesEngine";
 
@@ -39,6 +40,7 @@ function App() {
 			<div className="draggable">
 				<MoveableBoat boatState={boat2} setBoatState={setBoat2} moveRef={moveRef2} text="boat2" boatRuleView={boat2View} />
 			</div>
+			<TransomLineOverlay boatA={boat1} boatB={boat2} overlapped={evaluation.overlapped} />
 		</div>
 	);
 }

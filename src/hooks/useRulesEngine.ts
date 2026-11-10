@@ -1,5 +1,5 @@
 import {useEffect, useMemo, useRef} from "react";
-import {BoatState, WindState, RuleEvaluation, Tack, evaluate, getTack, areOnSameTack, isOverlapped, isClearAstern, getWindwardBoat, boatPerimeterDistance, TWO_HULL_LENGTHS} from "../rules/rulesEngine";
+import {BoatState, WindState, RuleEvaluation, Tack, evaluate, getTack, isClearAstern, computeMeetingFacts, TWO_HULL_LENGTHS} from "../rules/rulesEngine";
 
 /** Heading change (degrees) above which a boat is considered to be changing course. */
 const COURSE_CHANGE_EPSILON = 0.5;
@@ -52,13 +52,11 @@ export function useRulesEngine(boatA: BoatState, boatB: BoatState, wind: WindSta
 		// Rule 17.1 — detect a clear-astern boat becoming overlapped to leeward
 		// within two hull lengths, and latch it until the boats are no longer
 		// overlapped within that distance (or are no longer on the same tack).
-		const sameTack = areOnSameTack(aTack, bTack);
-		const separation = boatPerimeterDistance(boatA, boatB);
-		const overlapped = sameTack && isOverlapped(boatA, boatB);
-		const withinTwoLengths = separation < TWO_HULL_LENGTHS;
+		const {facts} = computeMeetingFacts(boatA, boatB, wind, prevTacksRef.current);
+		const withinTwoLengths = facts.separation < TWO_HULL_LENGTHS;
 
-		if (overlapped && withinTwoLengths) {
-			const windwardIsA = getWindwardBoat(boatA, boatB, wind) === "a";
+		if (facts.overlapped && withinTwoLengths) {
+			const windwardIsA = facts.windwardIsA === true;
 			if (!windwardIsA && prevClearAsternARef.current) establishedLeewardRef.current.a = true;
 			if (windwardIsA && prevClearAsternBRef.current) establishedLeewardRef.current.b = true;
 		} else {

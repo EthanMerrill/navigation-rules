@@ -478,3 +478,18 @@
 		radial-gradient(8px at 50% calc(100% + 4.5px), #0000 calc(99% - 1px), #000 calc(101% - 1px) 99%, #0000 101%) calc(50% - 12px) calc(50% - 3.5px + 0.5px) / 24px 7px,
 		radial-gradient(8px at 50% -4.5px, #0000 calc(99% - 1px), #000 calc(101% - 1px) 99%, #0000 101%) 50% calc(50% + 3.5px) / 24px 7px;
 }
+
+/* Transom (abeam) line — the overlap boundary visualised. */
+.transom-line {
+	position: absolute;
+	pointer-events: none;
+	z-index: 10;
+	height: 0;
+	border-top: 3px dotted #7b1fa2;
+	opacity: 0;
+	transition: opacity 0.4s ease;
+}
+
+.transom-line--visible {
+	opacity: 1;
+}
