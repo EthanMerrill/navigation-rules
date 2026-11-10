@@ -28,7 +28,8 @@ function worldOf(boats: BoatState[], overrides: Partial<WorldState> = {}): World
 
 const WINDWARD_MARK: Mark = {id: "mark1", ...toWorld({x: 700, y: 130}), roundingSide: "port", kind: "windward"};
 const LEEWARD_MARK: Mark = {id: "mark1", ...toWorld({x: 1000, y: 760}), roundingSide: "port", kind: "leeward"};
-const OBSTRUCTION: Obstruction = {id: "obstruction1", ...toWorld({x: 950, y: 320}), radius: 0.7};
+const OBSTRUCTION: Obstruction = {id: "obstruction1", ...toWorld({x: 950, y: 560}), radius: 0.7};
+const LARGE_OBSTRUCTION: Obstruction = {id: "obstruction1", ...toWorld({x: 1100, y: 840}), radius: 2};
 
 /** All scenarios, in picker order. */
 export const SCENARIOS: Scenario[] = [
@@ -80,8 +81,14 @@ export const SCENARIOS: Scenario[] = [
 	{
 		id: "obstruction",
 		title: "Obstruction",
-		description: "Two boats on the same tack approach an obstruction.",
-		world: worldOf([boat("boat1", 500, 250, 90), boat("boat2", 560, 400, 90)], {obstructions: [OBSTRUCTION]}),
+		description: "Two boats overlapped on the same tack approach an obstruction. Boat 2 is inside, so boat 1 (outside) must give her room between her and the obstruction (Rule 19.2(b)).",
+		world: worldOf([boat("boat1", 500, 230, 90), boat("boat2", 520, 370, 90)], {obstructions: [OBSTRUCTION]}),
+	},
+	{
+		id: "continuing-obstruction",
+		title: "Continuing obstruction",
+		description: "Boat 1 is close to a large obstruction. Boat 2 is clear astern; drag her forward until she is overlapped inside boat 1. There is no room for her to pass between boat 1 and the obstruction, so she is not entitled to room (Rule 19.2(c)).",
+		world: worldOf([boat("boat1", 880, 480, 90), boat("boat2", 400, 570, 90)], {obstructions: [LARGE_OBSTRUCTION]}),
 	},
 ];
 

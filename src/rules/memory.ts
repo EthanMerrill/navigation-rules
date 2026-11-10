@@ -32,6 +32,20 @@ export interface PairMemory {
 	leewardFromAstern: Record<string, boolean>;
 	/** Boat id → whether that boat was clear astern of the other last frame. */
 	prevClearAstern: Record<string, boolean>;
+	/**
+	 * Obstruction id → the state of the pair when an overlap between them began
+	 * while both were passing that obstruction (Rule 19.2(c)); kept while the
+	 * overlap lasts. Absent for an obstruction means no such overlap is latched.
+	 */
+	obstructionOverlaps: Record<string, ObstructionOverlapMemory>;
+}
+
+/** The pair's state at the moment an overlap began at an obstruction (Rule 19.2(c)). */
+export interface ObstructionOverlapMemory {
+	/** The boat that was clear astern and became overlapped between the other boat and the obstruction. */
+	insideId: string;
+	/** Whether there was room for her to pass between the outside boat and the obstruction at that moment. */
+	roomAtStart: boolean;
 }
 
 /** What the engine remembers about one boat's approach to one mark. */

@@ -12,8 +12,9 @@ import {CLOSE_HAULED_ANGLE, TWO_HULL_LENGTHS, computeFacts, getWindAngle, isClea
 import type {Tack, WorldFacts} from "./factsEngine";
 import {evaluate} from "./evaluate";
 import {nextMarkMemory, nextTackedInZoneOf} from "./markMemory";
+import {nextObstructionOverlaps} from "./obstructionMemory";
 import {createEmptyMemory} from "./memory";
-import type {BoatMemory, EngineMemory, PairMemory} from "./memory";
+import type {BoatMemory, EngineMemory, ObstructionOverlapMemory, PairMemory} from "./memory";
 import type {EngineHistory, RuleEvaluation} from "./types";
 
 /** Heading change (degrees) above which a boat is considered to be changing course. */
@@ -85,11 +86,17 @@ export function step(world: WorldState, memory: EngineMemory | null, nowMs: numb
 		if (!mark.released) (history.markEntry ??= {})[key] = mark;
 	}
 
+	// The obstruction-overlap latches also depend only on facts and last frame's memory, so they bind the frame they are taken.
+	const obstructionOverlaps = nextObstructionOverlaps(world, facts, prev);
+	for (const [key, latches] of Object.entries(obstructionOverlaps)) {
+		if (Object.keys(latches).length > 0) (history.obstructionOverlaps ??= {})[key] = latches;
+	}
+
 	// (d) Evaluate.
 	const evaluation = evaluate(world, facts, history);
 
 	// (e) Next memory.
-	return {evaluation, memory: {boats: boatMemory, pairs: nextPairMemory(world, facts, evaluation, prev), ...markMemory}};
+	return {evaluation, memory: {boats: boatMemory, pairs: nextPairMemory(world, facts, evaluation, prev, obstructionOverlaps), ...markMemory}};
 }
 
 /**
@@ -98,7 +105,7 @@ export function step(world: WorldState, memory: EngineMemory | null, nowMs: numb
  * two hull lengths; the latch holds until the boats are no longer overlapped
  * within that distance (or no longer on the same tack).
  */
-function nextPairMemory(world: WorldState, facts: WorldFacts, evaluation: RuleEvaluation, prev: EngineMemory): Record<string, PairMemory> {
+function nextPairMemory(world: WorldState, facts: WorldFacts, evaluation: RuleEvaluation, prev: EngineMemory, obstructionOverlaps: Record<string, Record<string, ObstructionOverlapMemory>>): Record<string, PairMemory> {
 	const pairs: Record<string, PairMemory> = {};
 	for (const [key, pair] of Object.entries(facts.pairs)) {
 		const a = world.boats.find((boat) => boat.id === pair.a);
@@ -117,6 +124,7 @@ function nextPairMemory(world: WorldState, facts: WorldFacts, evaluation: RuleEv
 			prevRightOfWay: evaluation.pairs[key].rightOfWay,
 			leewardFromAstern,
 			prevClearAstern: {[a.id]: isClearAstern(a, b), [b.id]: isClearAstern(b, a)},
+			obstructionOverlaps: obstructionOverlaps[key] ?? {},
 		};
 	}
 	return pairs;

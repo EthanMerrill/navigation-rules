@@ -5,7 +5,7 @@ describe("scenarios", () => {
 	it("have unique ids", () => {
 		const ids = SCENARIOS.map((s) => s.id);
 		expect(new Set(ids).size).toBe(ids.length);
-		expect(ids).toEqual(expect.arrayContaining(["port-starboard", "windward-leeward", "clear-astern", "windward-mark", "leeward-mark", "tack-in-zone", "obstruction"]));
+		expect(ids).toEqual(expect.arrayContaining(["port-starboard", "windward-leeward", "clear-astern", "windward-mark", "leeward-mark", "tack-in-zone", "obstruction", "continuing-obstruction"]));
 	});
 
 	it.each(SCENARIOS.map((s) => [s.id, s] as const))("%s has two or more boats and valid legs", (_id, scenario) => {
@@ -55,6 +55,22 @@ describe("scenarios", () => {
 			evaluation = result.evaluation;
 		});
 		expect(evaluation.rules.find((r) => r.id === "18.3")?.applicable).toBe(true);
+	});
+
+	it("obstruction shows 19.2(b): the outside boat gives the inside boat room", () => {
+		const {evaluation} = step(findScenario("obstruction")!.world, null, 0);
+		expect(evaluation.obligations.filter((o) => o.ruleId === "19.2b").map((o) => `${o.boat}>${o.towards}`)).toEqual(["boat1>boat2"]);
+	});
+
+	it("continuing-obstruction: boat 2 squeezing in from astern is not entitled to room (19.2(c))", () => {
+		const base = findScenario("continuing-obstruction")!.world;
+		const first = step(base, null, 0);
+		expect(first.evaluation.rules.find((r) => r.id === "19.2b")?.applicable).toBe(false);
+		const boat1 = base.boats[0];
+		const squeezed = {...base, boats: base.boats.map((b) => (b.id === "boat2" ? {...b, x: boat1.x, y: boat1.y + 0.7} : b))};
+		const {evaluation} = step(squeezed, first.memory, 16);
+		expect(evaluation.rules.find((r) => r.id === "19.2c")?.applicable).toBe(true);
+		expect(evaluation.rules.find((r) => r.id === "19.2b")?.applicable).toBe(false);
 	});
 
 	it("cloneWorld returns an independent copy", () => {

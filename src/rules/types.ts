@@ -6,7 +6,7 @@
 
 import type {BoatState, WorldState} from "../model/world";
 import type {RuleContent} from "./content/rrs-2025";
-import type {PairMarkMemory} from "./memory";
+import type {ObstructionOverlapMemory, PairMarkMemory} from "./memory";
 import type {PairFacts, PointOfSail, Tack, WorldFacts} from "./factsEngine";
 
 /** Rule identifier as printed in the RRS: "10", "17.1", later "18.2b". */
@@ -47,6 +47,8 @@ export interface EngineHistory {
 	markEntry?: Record<string, PairMarkMemory>;
 	/** Boat id → id of the mark whose zone she tacked in from port to starboard and is still in (Rule 18.3). */
 	tackedInZone?: Record<string, string>;
+	/** Pair key → obstruction id → the pair's state when an overlap began at that obstruction (Rule 19.2(c)). */
+	obstructionOverlaps?: Record<string, Record<string, ObstructionOverlapMemory>>;
 }
 
 /** The two boats of a pair-scope evaluation. `a` is the boat with the smaller id. */

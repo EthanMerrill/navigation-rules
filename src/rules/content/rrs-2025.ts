@@ -193,6 +193,30 @@ const EVALUABLE_CONTENT: RuleContent[] = [
 		note: "She \"must gybe\" is approximated: she is sailing more than 90 degrees from the wind and the mark is on her leeward side.",
 		noteShort: "Gybe needed: downwind, mark on her leeward side.",
 	},
+	{
+		id: "19.2b",
+		part: 2,
+		section: "C",
+		evaluable: true,
+		title: "Obstruction: Room When Overlapped",
+		description: "When boats are overlapped at an obstruction, the outside boat gives the inside boat room between her and the obstruction.",
+		fullText: "", // TODO: official text of rule 19.2(b)
+		laymanExplanation: "When two boats side by side are passing the same side of an obstruction, the boat on the outside must leave the inside boat enough room to sail between her and the obstruction.",
+		note: "Applies when at least one boat is approaching the obstruction (it is ahead of her abeam line and within four hull lengths) and both would pass it on the same side. \"Inside\" is the boat closer to the obstruction measured across the boats' mean heading. The exception for an outside boat that has been unable to give room from the time the overlap began is not modelled, nor is the case where a right-of-way boat is itself the obstruction.",
+		noteShort: "Inside = closer to the obstruction; no \"unable to give room\" exception.",
+	},
+	{
+		id: "19.2c",
+		part: 2,
+		section: "C",
+		evaluable: true,
+		title: "Obstruction: No Room to Squeeze In",
+		description: "A boat that was clear astern and must keep clear is not entitled to room if she becomes overlapped inside when there is no room to pass between the other boat and the obstruction.",
+		fullText: "", // TODO: official text of rule 19.2(c)
+		laymanExplanation: "A boat coming up from astern cannot force her way in between another boat and the obstruction. If at the moment she becomes overlapped there is not enough room for her to fit, the other boat does not have to give her room under 19.2(b).",
+		note: "At the moment the overlap begins, room is approximated as a gap of at least one beam (about 0.48 hull lengths) between the outside boat's hull and the obstruction's edge; the result is kept in engine memory while the overlap lasts. Every obstruction is treated as continuing. While it applies, the squeezing-in boat shows an avoid-contact duty so the rule can appear; it does not change right of way.",
+		noteShort: "Room = a beam's gap when the overlap began.",
+	},
 ];
 
 /**
@@ -208,9 +232,7 @@ const REFERENCE_CONTENT: RuleContent[] = [
 	{id: "18.2d", part: 2, section: "C", evaluable: false, title: "Mark-Room: Ending the Entitlement", description: "A boat's entitlement to mark-room under 18.2(b) ends when she passes head to wind or leaves the zone.", fullText: "", laymanExplanation: "The entry-based mark-room duty does not last forever: it stops when the boat entitled to it tacks through the wind or leaves the three-hull-length zone. The simulator handles this by releasing its zone-entry memory, so it has no rule card of its own."},
 	{id: "19", part: 2, section: "C", evaluable: false, title: "Room to Pass an Obstruction", description: "Rules for giving room to pass an obstruction.", fullText: "", laymanExplanation: "When boats are sailing past an obstruction, the rule decides who must give room to whom."},
 	{id: "19.1", part: 2, section: "C", evaluable: false, title: "Obstruction: When Rule 19 Applies", description: "Rule 19 applies at an obstruction, but not at a mark.", fullText: "", laymanExplanation: "The room-to-pass rules apply to boats about to pass an obstruction on the same side; at a mark, rule 18 applies instead."},
-	{id: "19.2a", part: 2, section: "C", evaluable: false, title: "Obstruction: Right-of-Way Boat", description: "A right-of-way boat may choose to pass the obstruction on either side.", fullText: "", laymanExplanation: "The right-of-way boat chooses which side to pass the obstruction, subject to the rest of the rule."},
-	{id: "19.2b", part: 2, section: "C", evaluable: false, title: "Obstruction: Giving Room Overlapped", description: "The outside boat gives the inside boat room between her and the obstruction.", fullText: "", laymanExplanation: "While overlapped at an obstruction, the outside boat must give the inside boat room to pass between her and the obstruction."},
-	{id: "19.2c", part: 2, section: "C", evaluable: false, title: "Rule 19.2(c)", description: "Sub-rule (c) of rule 19.2; to be summarised when it is implemented.", fullText: "", laymanExplanation: "See rule 19.2; a plain-English explanation will be added when this sub-rule is implemented."},
+	{id: "19.2a", part: 2, section: "C", evaluable: false, title: "Obstruction: Right-of-Way Boat", description: "A right-of-way boat may choose to pass the obstruction on either side.", fullText: "", laymanExplanation: "The right-of-way boat chooses which side to pass the obstruction, subject to the rest of the rule. This is a permission rather than a duty, so the simulator does not emit an obligation for it."},
 	{id: "20", part: 2, section: "C", evaluable: false, title: "Room to Tack at an Obstruction", description: "A boat may hail for room to tack to avoid an obstruction.", fullText: "", laymanExplanation: "A boat sailing close-hauled that needs to tack to avoid an obstruction may hail for room, and the hailed boat must respond."},
 	{id: "20.1", part: 2, section: "C", evaluable: false, title: "Hailing", description: "A boat may hail for room to tack and avoid a boat on the same tack.", fullText: "", laymanExplanation: "The hailing boat calls for room to tack, and must be ready to tack at once."},
 	{id: "20.2", part: 2, section: "C", evaluable: false, title: "Responding", description: "A hailed boat must tack or reply and give room.", fullText: "", laymanExplanation: "The hailed boat must either tack as soon as possible or reply that she will, and then give room."},
