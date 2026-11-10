@@ -31,7 +31,7 @@ export function obligationLabels(obligations: Obligation[]): string[] {
 	return [...new Set(obligations.map(obligationLabel))];
 }
 
-/** A label for a boat tag; `exonerated` when every obligation reading this way is exonerated (Rule 21). */
+/** A label for a boat tag; `exonerated` when every obligation reading this way is exonerated (Rule 43.1(b)). */
 export interface ObligationTag {
 	label: string;
 	exonerated: boolean;

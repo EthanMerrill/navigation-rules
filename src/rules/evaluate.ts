@@ -109,7 +109,7 @@ export function evaluate(world: WorldState, facts: WorldFacts, history: EngineHi
 		if (obligations.length > 0) fired.push({rule, obligations});
 	}
 
-	// Rule 21 post-pass: mark the obligations of boats exonerated by the room they are owed. It never changes `kind`, so right of way is unaffected.
+	// Rule 43.1(b) post-pass: mark the obligations of boats exonerated by the room they are owed. It never changes `kind`, so right of way is unaffected.
 	const exonerations = applyExoneration(fired, pairKeys);
 
 	const obligations = fired.flatMap((f) => f.obligations);
@@ -166,7 +166,7 @@ export function evaluate(world: WorldState, facts: WorldFacts, history: EngineHi
 		const mine = fired.filter((f) => f.rule.id === rule.id);
 		const inFocus = mine.filter((f) => f.pair === focus && focus !== null);
 		const shown = (inFocus.length > 0 ? inFocus : mine)[0];
-		const exoneration = rule.id === "21" ? (exonerations.find((n) => n.pair === focus) ?? exonerations[0]) : undefined;
+		const exoneration = rule.id === "43.1b" ? (exonerations.find((n) => n.pair === focus) ?? exonerations[0]) : undefined;
 		const first = shown?.obligations[0];
 		const {id, title, description, fullText, laymanExplanation, note, noteShort} = contentOf(rule.id);
 		return {

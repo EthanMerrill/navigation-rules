@@ -377,7 +377,7 @@ describe("evaluate", () => {
 
 		// 11 decides; 14 (hulls ~122px apart, within risk distance) co-applies;
 		// the rest are not applicable, sorted ascending.
-		expect(result.rules.map((r) => r.id)).toEqual(["11", "14", "10", "12", "13", "15", "16.1", "16.2", "17", "18.2a", "18.2c", "18.3", "18.4", "19.2a", "19.2b", "19.2c", "20.2", "21"]);
+		expect(result.rules.map((r) => r.id)).toEqual(["11", "14", "10", "12", "13", "15", "16.1", "16.2", "17", "18.2a", "18.2c", "18.3", "18.4", "19.2a", "19.2b", "19.2c", "20.2", "43.1b"]);
 		expect(result.rules[0].deciding).toBe(true);
 		expect(result.rules[0].applicable).toBe(true);
 		// Only one rule should ever be deciding.
@@ -901,5 +901,18 @@ describe("overlap per the RRS definition", () => {
 		const beating = computeFacts({...createDefaultWorld(), boats: [at("a", 0, 0, 45), at("b", 0, 0.2, 315)]}).pairs["a|b"];
 		expect(beating.overlappedGeometric).toBe(true);
 		expect(beating.overlapped).toBeNull();
+	});
+});
+
+describe("rule content numbering (2025-2028 edition)", () => {
+	it("numbers Part 1, Section D and Part 3 as in the official text", () => {
+		expect(contentOf("3").title).toBe("Decision to Race");
+		expect(contentOf("4").title).toBe("Acceptance of the Rules");
+		expect(contentOf("21").title).toBe("Starting Errors; Taking Penalties; Backing a Sail");
+		expect(contentOf("22").title).toBe("Capsized, Anchored or Aground; Rescuing");
+		expect(contentOf("23").title).toBe("Interfering with Another Boat");
+		for (const id of ["21.1", "21.2", "21.3", "23.1", "23.2"]) expect(contentOf(id)).toMatchObject({part: 2, section: "D"});
+		expect(RULE_CONTENT["24"]).toBeUndefined();
+		expect(contentOf("31").description).toContain("starting mark");
 	});
 });

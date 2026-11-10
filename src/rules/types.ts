@@ -27,7 +27,7 @@ export interface Obligation {
 	detail: string;
 	/**
 	 * Set by the evaluator when the boat is exonerated for breaking this duty
-	 * (Rule 21). Exoneration protects against a penalty only: the obligation
+	 * (Rule 43.1(b)). Exoneration protects against a penalty only: the obligation
 	 * stays in place and still counts for right of way.
 	 */
 	exoneratedBy?: RuleId;
@@ -90,11 +90,13 @@ export interface PairEvalContext extends EvalContext {
 /** A single rule: identity, how it relates to other rules, and its predicate. Display text is in `content/rrs-2025.ts`. */
 export interface RuleDefinition {
 	id: RuleId;
-	part: 2;
-	section: "A" | "B" | "C" | "D";
+	/** Part 2 for the right-of-way rules; Part 4 for exoneration (43.1b). */
+	part: 2 | 4;
+	/** Section letter in Part 2; absent in Part 4. */
+	section?: "A" | "B" | "C" | "D";
 	/**
 	 * Run once per pair of boats, once per boat, once per world, or never (reference only).
-	 * Rule 21 (exoneration) is registered with scope "all" and an empty predicate: it
+	 * Rule 43.1(b) (exoneration) is registered with scope "all" and an empty predicate: it
 	 * does not emit obligations of its own. `evaluate` applies it as a post-pass over the
 	 * surviving obligations of each pair (`exoneration.ts`), marking them `exoneratedBy`.
 	 */

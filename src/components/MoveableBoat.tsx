@@ -130,7 +130,7 @@ const MoveableBoat = (props: ImoveableBoatProps) => {
 					<p className="text-tag">{POINT_OF_SAIL_LABELS[boatView.pointOfSail]}</p>
 				</div>
 				{obligationTags(boatView.obligations).map(({label, exonerated}) => (
-					<div className={exonerated ? "obligation-tag obligation-tag--exonerated" : "obligation-tag"} key={label} title={exonerated ? "Exonerated (Rule 21)" : undefined}>
+					<div className={exonerated ? "obligation-tag obligation-tag--exonerated" : "obligation-tag"} key={label} title={exonerated ? "Exonerated (Rule 43.1(b))" : undefined}>
 						<p className="text-tag">{exonerated ? `${label} (exonerated)` : label}</p>
 					</div>
 				))}
