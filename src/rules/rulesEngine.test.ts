@@ -386,7 +386,7 @@ describe("evaluate", () => {
 		// 11 decides; 14 (hulls ~122px apart, within risk distance) and 17.2 (the
 		// windward boat is on a beam reach, below her inferred close-hauled proper
 		// course) co-apply; the rest are not applicable, sorted ascending.
-		expect(result.rules.map((r) => r.id)).toEqual(["11", "14", "17.2", "10", "12", "13", "15", "16", "17.1"]);
+		expect(result.rules.map((r) => r.id)).toEqual(["11", "14", "17.2", "10", "12", "13", "15", "16", "17.1", "18.2a", "18.2b", "18.2c", "18.3", "18.4"]);
 		expect(result.rules[0].deciding).toBe(true);
 		expect(result.rules[0].applicable).toBe(true);
 		// Only one rule should ever be deciding.
@@ -465,7 +465,7 @@ describe("rule content", () => {
 		const result = evaluate(worldOf([]), computeFacts(worldOf([])));
 		expect(result.referenceRules.every((c) => !c.evaluable)).toBe(true);
 		expect(result.referenceRules.map((c) => c.id)).toEqual([...result.referenceRules.map((c) => c.id)].sort(compareRuleIds));
-		expect(result.referenceRules.map((c) => c.id)).toContain("18.2a");
+		expect(result.referenceRules.map((c) => c.id)).toContain("18.2d");
 		expect(result.rules.map((r) => r.id)).not.toContain("18");
 	});
 });

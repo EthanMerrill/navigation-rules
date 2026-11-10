@@ -3,12 +3,12 @@
  * frame by `step`. Pure: takes last frame's memory and this frame's facts.
  */
 
-import type {WorldState} from "../model/world";
+import type {BoatState, WorldState} from "../model/world";
 import {isClearAstern, isOverlapped} from "./factsEngine";
 import type {WorldFacts} from "./factsEngine";
 import {insideBoatId} from "./markFacts";
 import {markSlotKey, pairMarkKey} from "./memory";
-import type {EngineMemory, MarkSlotMemory, PairMarkMemory} from "./memory";
+import type {BoatMemory, EngineMemory, MarkSlotMemory, PairMarkMemory} from "./memory";
 
 /** The boat entitled to mark-room under a latch, or null when neither is (overlapped with nobody inside). */
 export function entitledBoat(latch: PairMarkMemory): string | null {
@@ -67,4 +67,24 @@ export function nextMarkMemory(world: WorldState, facts: WorldFacts, prev: Engin
 		}
 	}
 	return {markSlots, pairMarks};
+}
+
+/**
+ * The mark whose zone the boat tacked in from port to starboard tack (Rule 18.3),
+ * for a mark to be left to port that is her next mark. Set on the frame she
+ * starts tacking, then kept while she stays on starboard tack in that zone.
+ *
+ * @param before Her memory from last frame.
+ * @param startedTacking True when she passed head to wind this frame.
+ */
+export function nextTackedInZoneOf(boat: BoatState, before: BoatMemory | undefined, world: WorldState, facts: WorldFacts, startedTacking: boolean): string | undefined {
+	const tack = facts.boats[boat.id].tack;
+	if (startedTacking && before?.prevTack === "PORT" && tack === "STARBOARD") {
+		return world.marks.find((mark) => {
+			const f = facts.marks[markSlotKey(boat.id, mark.id)];
+			return mark.roundingSide === "port" && f.nextMark && f.inZone;
+		})?.id;
+	}
+	const kept = before?.tackedInZoneOf;
+	return kept !== undefined && tack === "STARBOARD" && facts.marks[markSlotKey(boat.id, kept)]?.inZone ? kept : undefined;
 }

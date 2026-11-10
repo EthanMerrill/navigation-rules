@@ -10,5 +10,6 @@
 import type {RuleDefinition} from "../types";
 import {SECTION_A_RULES} from "./sectionA";
 import {SECTION_B_RULES} from "./sectionB";
+import {SECTION_C_RULES} from "./sectionC";
 
-export const RULE_REGISTRY: RuleDefinition[] = [...SECTION_A_RULES, ...SECTION_B_RULES];
+export const RULE_REGISTRY: RuleDefinition[] = [...SECTION_A_RULES, ...SECTION_B_RULES, ...SECTION_C_RULES];

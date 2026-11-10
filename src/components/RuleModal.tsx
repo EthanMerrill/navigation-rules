@@ -48,7 +48,7 @@ const RuleModal = ({rule, onClose}: RuleModalProps) => {
 
 							<section>
 								<h3>Official text</h3>
-								<blockquote className="rule-modal__full-text">{rule.fullText}</blockquote>
+								<blockquote className="rule-modal__full-text">{rule.fullText || "The official text has not been transcribed yet. See the RRS 2025–2028."}</blockquote>
 							</section>
 
 							<section>

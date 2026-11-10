@@ -20,6 +20,8 @@ export interface BoatMemory {
 	tacking: boolean;
 	/** Timestamp (ms) at which the current tack began; set only while `tacking`. */
 	tackingSince?: number;
+	/** Id of the mark whose zone she tacked in from port to starboard tack and is still in (Rule 18.3). */
+	tackedInZoneOf?: string;
 }
 
 /** What the engine remembers about one pair of boats. */

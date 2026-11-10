@@ -1,7 +1,7 @@
 import type {BoatState, Mark, WorldState} from "../model/world";
 import {createDefaultWorld} from "../state/worldReducer";
 import {ZONE_RADIUS} from "./markFacts";
-import {computeFacts, markSlotKey} from "./rulesEngine";
+import {computeFacts, markSlotKey, step} from "./rulesEngine";
 
 // Wind from the north (0 degrees); positions in hull lengths.
 const MARK: Mark = {id: "m", x: 10, y: 10, roundingSide: "port", kind: "windward"};
@@ -73,5 +73,19 @@ describe("proper course", () => {
 	it("falls back to close-hauled on the current tack with no next mark", () => {
 		expect(properCourse(worldOf([boat("a", 0, 10, 90)], null), "a")).toBeCloseTo(45);
 		expect(properCourse(worldOf([boat("a", 0, 10, 90, 1)]), "a")).toBeCloseTo(45); // past the last leg
+	});
+});
+
+describe("Rule 17.2 with a next mark", () => {
+	// Port-tack beam reach: the northern boat is windward, within two hull lengths of the other.
+	const boats = [boat("w", 5, 5, 90), boat("l", 5, 6, 90)];
+	const rule172 = (world: WorldState) => step(world, null, 0).evaluation.rules.find((r) => r.id === "17.2")?.applicable;
+
+	it("does not fire when her heading is her proper course to the mark", () => {
+		expect(rule172(worldOf(boats, {...MARK, x: 40, y: 5}))).toBe(false); // mark due east
+	});
+
+	it("still fires without a next mark, where proper course is close-hauled", () => {
+		expect(rule172(worldOf(boats, null))).toBe(true);
 	});
 });

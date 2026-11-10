@@ -13,6 +13,7 @@ export const OBLIGATION_LABELS: Record<ObligationKind, (towards?: string) => str
 	avoidContact: () => "Avoid contact",
 	notAboveProperCourse: () => "No higher than proper course",
 	notBelowProperCourse: () => "No lower than proper course",
+	sailNoFartherFromMark: () => "Sail no farther from the mark than needed",
 };
 
 /** The short label for one obligation. */

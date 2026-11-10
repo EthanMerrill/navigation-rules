@@ -13,7 +13,7 @@ import type {PairFacts, PointOfSail, Tack, WorldFacts} from "./factsEngine";
 export type RuleId = string;
 
 /** What a rule requires of a boat. */
-export type ObligationKind = "keepClear" | "giveRoom" | "giveMarkRoom" | "avoidContact" | "notAboveProperCourse" | "notBelowProperCourse";
+export type ObligationKind = "keepClear" | "giveRoom" | "giveMarkRoom" | "avoidContact" | "notAboveProperCourse" | "notBelowProperCourse" | "sailNoFartherFromMark";
 
 /** A single duty imposed on `boat` (optionally owed `towards` another boat) by a rule. */
 export interface Obligation {
@@ -45,6 +45,8 @@ export interface EngineHistory {
 	 * mark-room entitlement has been released (18.2(d)) are left out.
 	 */
 	markEntry?: Record<string, PairMarkMemory>;
+	/** Boat id → id of the mark whose zone she tacked in from port to starboard and is still in (Rule 18.3). */
+	tackedInZone?: Record<string, string>;
 }
 
 /** The two boats of a pair-scope evaluation. `a` is the boat with the smaller id. */

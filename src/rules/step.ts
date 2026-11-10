@@ -11,7 +11,7 @@ import type {WorldState} from "../model/world";
 import {CLOSE_HAULED_ANGLE, TWO_HULL_LENGTHS, computeFacts, getWindAngle, isClearAstern} from "./factsEngine";
 import type {Tack, WorldFacts} from "./factsEngine";
 import {evaluate} from "./evaluate";
-import {nextMarkMemory} from "./markMemory";
+import {nextMarkMemory, nextTackedInZoneOf} from "./markMemory";
 import {createEmptyMemory} from "./memory";
 import type {BoatMemory, EngineMemory, PairMemory} from "./memory";
 import type {EngineHistory, RuleEvaluation} from "./types";
@@ -47,15 +47,20 @@ export function step(world: WorldState, memory: EngineMemory | null, nowMs: numb
 
 	// (b) Derive tacking per boat and expose it in the facts.
 	const boatMemory: Record<string, BoatMemory> = {};
+	const startedTacking = new Set<string>();
 	for (const boat of world.boats) {
 		const bf = facts.boats[boat.id];
 		const before = prev.boats[boat.id];
 		bf.tacking = deriveTacking(before, bf.tack, getWindAngle(boat.heading, world.wind.direction));
+		const started = bf.tacking && !before?.tacking;
+		if (started) startedTacking.add(boat.id);
+		const tackedInZoneOf = nextTackedInZoneOf(boat, before, world, facts, started);
 		boatMemory[boat.id] = {
 			prevTack: bf.tack,
 			prevHeading: boat.heading,
 			tacking: bf.tacking,
 			...(bf.tacking ? {tackingSince: before?.tacking ? (before.tackingSince ?? nowMs) : nowMs} : {}),
+			...(tackedInZoneOf !== undefined ? {tackedInZoneOf} : {}),
 		};
 	}
 
@@ -71,7 +76,12 @@ export function step(world: WorldState, memory: EngineMemory | null, nowMs: numb
 		history.leewardFromAstern![key] = pair.leewardFromAstern;
 	}
 
-	for (const [key, mark] of Object.entries(prev.pairMarks)) {
+	for (const [id, boat] of Object.entries(boatMemory)) {
+		if (boat.tackedInZoneOf !== undefined) (history.tackedInZone ??= {})[id] = boat.tackedInZoneOf;
+	}
+	// The zone-entry latches depend only on facts, so this frame's are used: a latch taken now binds the evaluation now.
+	const markMemory = nextMarkMemory(world, facts, prev, nowMs, startedTacking);
+	for (const [key, mark] of Object.entries(markMemory.pairMarks)) {
 		if (!mark.released) (history.markEntry ??= {})[key] = mark;
 	}
 
@@ -79,8 +89,6 @@ export function step(world: WorldState, memory: EngineMemory | null, nowMs: numb
 	const evaluation = evaluate(world, facts, history);
 
 	// (e) Next memory.
-	const startedTacking = new Set(world.boats.filter((boat) => facts.boats[boat.id].tacking && !prev.boats[boat.id]?.tacking).map((boat) => boat.id));
-	const markMemory = nextMarkMemory(world, facts, prev, nowMs, startedTacking);
 	return {evaluation, memory: {boats: boatMemory, pairs: nextPairMemory(world, facts, evaluation, prev), ...markMemory}};
 }
 
