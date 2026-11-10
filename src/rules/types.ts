@@ -49,8 +49,8 @@ export interface EngineHistory {
 	leewardFromAstern?: Record<string, Record<string, boolean>>;
 	/**
 	 * `pairMarkKey` (`pairKey|markId`) → the state of the pair when the first of
-	 * them reached that mark's zone (Rule 18.2(b)). Only live latches: slots whose
-	 * mark-room entitlement has been released (18.2(d)) are left out.
+	 * them reached that mark's zone (Rule 18.2(a)). Only live latches: slots whose
+	 * mark-room entitlement has been released (18.2(b)) are left out.
 	 */
 	markEntry?: Record<string, PairMarkMemory>;
 	/** Boat id → id of the mark whose zone she tacked in from port to starboard and is still in (Rule 18.3). */

@@ -56,7 +56,7 @@ export interface MarkSlotMemory {
 
 /**
  * What the engine remembers about one pair of boats at one mark: the state of
- * the pair when the FIRST of them reached the zone (Rule 18.2(b)). Created only
+ * the pair when the FIRST of them reached the zone (Rule 18.2(a)). Created only
  * for pairs that both have the mark as their next mark.
  */
 export interface PairMarkMemory {
@@ -66,11 +66,15 @@ export interface PairMarkMemory {
 	overlappedAtEntry: boolean;
 	/** When overlapped at entry: the inside boat (see `insideBoatId`); absent when neither was inside. */
 	insideAtEntry?: string;
-	/** When not overlapped at entry: the boat that was clear ahead. */
-	clearAheadAtEntry?: string;
+	/**
+	 * When not overlapped at entry: the boat that had reached the zone (the other
+	 * had not, Rule 18.2(a)(2)). When both were already in the zone on the first
+	 * frame they were seen, the boat that was clear ahead.
+	 */
+	inZoneAtEntry?: string;
 	/**
 	 * True once the boat entitled to mark-room has passed head to wind or left
-	 * the zone (Rule 18.2(d)). The slot is kept, so the latch is not simply taken
+	 * the zone (Rule 18.2(b)). The slot is kept, so the latch is not simply taken
 	 * again next frame, until both boats have left the zone.
 	 */
 	released?: boolean;

@@ -377,7 +377,7 @@ describe("evaluate", () => {
 
 		// 11 decides; 14 (hulls ~122px apart, within risk distance) co-applies;
 		// the rest are not applicable, sorted ascending.
-		expect(result.rules.map((r) => r.id)).toEqual(["11", "14", "10", "12", "13", "15", "16.1", "16.2", "17", "18.2a", "18.2b", "18.2c", "18.3", "18.4", "19.2b", "19.2c", "20.2", "21"]);
+		expect(result.rules.map((r) => r.id)).toEqual(["11", "14", "10", "12", "13", "15", "16.1", "16.2", "17", "18.2a", "18.2c", "18.3", "18.4", "19.2b", "19.2c", "20.2", "21"]);
 		expect(result.rules[0].deciding).toBe(true);
 		expect(result.rules[0].applicable).toBe(true);
 		// Only one rule should ever be deciding.

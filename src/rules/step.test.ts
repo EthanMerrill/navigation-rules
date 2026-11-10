@@ -151,7 +151,7 @@ describe("step — Rules 15 and 16", () => {
 	});
 });
 
-describe("step — zone-entry memory (Rule 18.2b)", () => {
+describe("step — zone-entry memory (Rule 18.2a)", () => {
 	// Wind from the north, windward mark at (10, 10) to be left to port. Boats on
 	// starboard tack, close-hauled (heading 315), approach from the south-east.
 	const mark = {id: "m", x: 10, y: 10, roundingSide: "port" as const, kind: "windward" as const};
@@ -169,9 +169,9 @@ describe("step — zone-entry memory (Rule 18.2b)", () => {
 		expect(memory?.markSlots["a|m"]).toEqual({zoneEntryAt: 16});
 	});
 
-	it("records the boat clear ahead when the boats are not overlapped at entry", () => {
+	it("records the boat that had reached the zone when the boats are not overlapped at entry", () => {
 		const {memory} = run([markWorld(far("a", 14.5, 15.5), far("b", 20, 20)), markWorld(far("a", 11.5, 12.5), far("b", 20, 20))]);
-		expect(memory?.pairMarks[key]).toMatchObject({overlappedAtEntry: false, clearAheadAtEntry: "a"});
+		expect(memory?.pairMarks[key]).toMatchObject({overlappedAtEntry: false, inZoneAtEntry: "a"});
 		expect(memory?.pairMarks[key].insideAtEntry).toBeUndefined();
 	});
 

@@ -31,9 +31,9 @@ describe("scenarios", () => {
 		expect(pair.decidingRuleId).toBe(ruleId);
 	});
 
-	it("windward-mark shows 18.2(b): the outside boat gives the inside boat mark-room, boat 3 gives both room", () => {
+	it("windward-mark shows 18.2(a): the outside boat gives the inside boat mark-room, boat 3 gives both room", () => {
 		const {evaluation} = step(findScenario("windward-mark")!.world, null, 0);
-		const pairs = evaluation.obligations.filter((o) => o.ruleId === "18.2b").map((o) => `${o.boat}>${o.towards}`);
+		const pairs = evaluation.obligations.filter((o) => o.ruleId === "18.2a").map((o) => `${o.boat}>${o.towards}`);
 		expect(pairs).toEqual(expect.arrayContaining(["boat2>boat1", "boat3>boat1", "boat3>boat2"]));
 	});
 

@@ -1,6 +1,7 @@
 /**
  * Helpers shared by the Rule 18 definitions: when Rule 18 applies between two
- * boats at a mark (18.1), and the zone-entry latch that 18.2(b) and 18.2(c) read.
+ * boats at a mark (18.1), the zone-entry latch that 18.2(a) reads, and the tack
+ * in the zone that 18.3 uses to suspend 18.2.
  */
 
 import type {BoatState, Mark} from "../../model/world";
@@ -25,12 +26,18 @@ export function markFactsOf(ctx: PairEvalContext, boat: BoatState, mark: Mark): 
  * mark and one leaving it (that boat's next mark is a later one), nor between
  * boats on opposite tacks that are both on a beat to windward.
  *
+ * Section C preamble: Rule 18 does not apply at a starting mark surrounded by
+ * navigable water, from the time boats approach it to start until they have
+ * left it astern. Every mark of kind "start" is skipped.
+ *
  * APPROXIMATIONS: "on a beat to windward" is "close-hauled or head to wind";
- * the exception for opposite-tack boats when only one of them must tack to
- * sail her proper course, and the exception for a mark that is a continuing
- * obstruction, are not modelled.
+ * "until they have left it astern" is not modelled (a start mark is always
+ * skipped); 18.1(a)(2) (opposite tacks when the proper course for one but not
+ * both is to tack), 18.1(a)(4) (a continuing obstruction) and 18.1(b) (Rule 18
+ * ends once mark-room has been given) are not modelled.
  */
 export function rule18Applies(ctx: PairEvalContext, mark: Mark): boolean {
+	if (mark.kind === "start") return false;
 	const {a, b, facts: pair} = ctx.pair;
 	const fa = markFactsOf(ctx, a, mark);
 	const fb = markFactsOf(ctx, b, mark);
@@ -48,12 +55,12 @@ export function marksUnderRule18(ctx: PairEvalContext): Mark[] {
 	return ctx.world.marks.filter((mark) => rule18Applies(ctx, mark));
 }
 
-/** The pair's zone-entry latch at `mark` (Rule 18.2(b)), who is entitled to mark-room under it, and who owes it. */
+/** The pair's zone-entry latch at `mark` (Rule 18.2(a)), who is entitled to mark-room under it, and who owes it. */
 export interface EntryLatch {
 	latch: PairMarkMemory;
 	entitled: BoatState;
 	giver: BoatState;
-	/** True when the current overlap state differs from the state at zone entry (Rule 18.2(c)). */
+	/** True when the current overlap state differs from the state at zone entry (a later overlap change; the duty continues). */
 	changed: boolean;
 }
 
@@ -69,4 +76,22 @@ export function entryLatch(ctx: PairEvalContext, mark: Mark): EntryLatch | null 
 /** A `giveMarkRoom` obligation from `giver` to `entitled`. */
 export function giveMarkRoom(ruleId: string, giver: BoatState, entitled: BoatState, detail: string): Obligation {
 	return {ruleId, boat: giver.id, towards: entitled.id, kind: "giveMarkRoom", detail};
+}
+
+/**
+ * Rule 18.3, first sentence: the (tacker, other) pairs at `mark` between whom rule
+ * 18.2 does not apply. A boat that passed head to wind from port to starboard tack in
+ * the zone of a mark to be left to port (`history.tackedInZone`), and another boat on
+ * starboard tack that is fetching the mark. Either boat of the pair may be the tacker.
+ */
+export function tackSuspensions(ctx: PairEvalContext, mark: Mark): {tacker: BoatState; other: BoatState}[] {
+	if (mark.roundingSide !== "port") return [];
+	const out: {tacker: BoatState; other: BoatState}[] = [];
+	for (const tacker of [ctx.pair.a, ctx.pair.b]) {
+		const other = otherOf(ctx.pair, tacker.id);
+		if (ctx.history.tackedInZone?.[tacker.id] !== mark.id || ctx.facts.boats[tacker.id].tack !== "STARBOARD") continue;
+		if (ctx.facts.boats[other.id].tack !== "STARBOARD" || !markFactsOf(ctx, other, mark).fetching) continue;
+		out.push({tacker, other});
+	}
+	return out;
 }

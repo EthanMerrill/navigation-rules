@@ -54,7 +54,7 @@ export const SCENARIOS: Scenario[] = [
 	{
 		id: "windward-mark",
 		title: "Windward mark",
-		description: "Boats 1 and 2 reach the zone of a windward mark (to port) overlapped on starboard tack, boat 1 inside; boat 3 is clear astern. Boat 2 gives boat 1 mark-room (Rule 18.2(b)), boat 3 gives both room.",
+		description: "Boats 1 and 2 reach the zone of a windward mark (to port) overlapped on starboard tack, boat 1 inside; boat 3 is clear astern. Boat 2 gives boat 1 mark-room (Rule 18.2(a)(1)); boat 3, which had not reached the zone, gives both room (18.2(a)(2)).",
 		world: worldOf([boat("boat1", 942, 533, 315), boat("boat2", 1184, 291, 315), boat("boat3", 1168, 759, 315)], {
 			marks: [WINDWARD_MARK],
 			course: {legs: [{toMarkId: WINDWARD_MARK.id}]},
@@ -63,7 +63,7 @@ export const SCENARIOS: Scenario[] = [
 	{
 		id: "leeward-mark",
 		title: "Leeward mark",
-		description: "Two boats overlapped on a run approach a leeward mark to be left to port. The leeward boat has right of way (Rule 11) but, as the outside boat, must give the inside boat mark-room (Rule 18.2).",
+		description: "Two boats overlapped on a run approach a leeward mark to be left to port. The leeward boat has right of way (Rule 11) but, as the outside boat, must give the inside boat mark-room (Rule 18.2(a)).",
 		world: worldOf([boat("boat1", 764, 387, 147), boat("boat2", 593, 432, 147)], {
 			marks: [LEEWARD_MARK],
 			course: {legs: [{toMarkId: LEEWARD_MARK.id}]},
@@ -72,8 +72,8 @@ export const SCENARIOS: Scenario[] = [
 	{
 		id: "tack-in-zone",
 		title: "Tacking in the zone",
-		description: "Boat 1 is on port tack inside the zone of a windward mark (to port), boat 2 on starboard tack. Rotate boat 1 through the wind onto starboard tack: Rule 18.3 then applies.",
-		world: worldOf([boat("boat1", 1136, 340, 45), boat("boat2", 942, 533, 315)], {
+		description: "Boat 1 is on port tack inside the zone of a windward mark (to port); boat 2, on starboard tack, is fetching the mark. Rotate boat 1 through the wind onto starboard tack: Rule 18.3 then applies and rule 18.2 does not.",
+		world: worldOf([boat("boat1", 1168, 195, 45), boat("boat2", 1088, 324, 315)], {
 			marks: [WINDWARD_MARK],
 			course: {legs: [{toMarkId: WINDWARD_MARK.id}]},
 		}),

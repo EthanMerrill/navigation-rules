@@ -12,7 +12,7 @@ import type {BoatMemory, EngineMemory, MarkSlotMemory, PairMarkMemory} from "./m
 
 /** The boat entitled to mark-room under a latch, or null when neither is (overlapped with nobody inside). */
 export function entitledBoat(latch: PairMarkMemory): string | null {
-	return (latch.overlappedAtEntry ? latch.insideAtEntry : latch.clearAheadAtEntry) ?? null;
+	return (latch.overlappedAtEntry ? latch.insideAtEntry : latch.inZoneAtEntry) ?? null;
 }
 
 /**
@@ -20,7 +20,7 @@ export function entitledBoat(latch: PairMarkMemory): string | null {
  *
  * - `markSlots`: `zoneEntryAt` is set on the frame a boat's hull first reaches a mark's zone and kept while she stays in it.
  * - `pairMarks`: when the first of two boats that both have the mark as their next mark reaches its zone, record whether they
- *   were overlapped (and who was inside) or who was clear ahead. The slot is released (18.2(d)) when the entitled boat starts
+ *   were overlapped (and who was inside) or which boat had reached the zone. The slot is released (18.2(b)) when the entitled boat starts
  *   tacking (`startedTacking`) or leaves the zone, and deleted once both boats have left the zone or stopped heading for the mark.
  *
  * @param startedTacking Ids of the boats that passed head to wind this frame.
@@ -54,7 +54,7 @@ export function nextMarkMemory(world: WorldState, facts: WorldFacts, prev: Engin
 					firstInZoneAt: nowMs,
 					overlappedAtEntry: overlapped,
 					...(inside ? {insideAtEntry: inside} : {}),
-					...(!overlapped ? {clearAheadAtEntry: isClearAstern(b, a) ? a.id : b.id} : {}),
+					...(!overlapped ? {inZoneAtEntry: fa.inZone && fb.inZone ? (isClearAstern(b, a) ? a.id : b.id) : fa.inZone ? a.id : b.id} : {}),
 				};
 				continue;
 			}
