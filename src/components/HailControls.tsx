@@ -12,7 +12,8 @@ interface HailControlsProps {
  * Hail controls (Rule 20): one "Hail for room to tack" button per boat, aimed at
  * the nearest boat on the same tack. A hail that breaks rule 20.1 can still be
  * made (the hailed boat must respond anyway, Rule 20.2(b)); a visible warning
- * next to the button says which part of 20.1 it breaks. A hailed boat can
+ * chip next to the button says it breaks 20.1; the reason is in its tooltip and
+ * in screen-reader text. A hailed boat can
  * answer "You tack". Hails stay until cleared.
  */
 const HailControls = ({world, dispatch}: HailControlsProps) => {
@@ -25,7 +26,7 @@ const HailControls = ({world, dispatch}: HailControlsProps) => {
 				const problem = target === null ? null : hailProblem(world, facts, boat.id, target);
 				const alreadyHailed = target !== null && world.hails.some((h) => h.kind === "roomToTack" && h.from === boat.id && h.to === target);
 				return (
-					<React.Fragment key={boat.id}>
+					<span className="hail-control" key={boat.id}>
 						<button
 							type="button"
 							className="reset-button"
@@ -35,11 +36,12 @@ const HailControls = ({world, dispatch}: HailControlsProps) => {
 							{boat.id}: room to tack
 						</button>
 						{problem !== null && (
-							<span className="hail-warning" role="status">
-								breaks rule 20.1: {problem}
+							<span className="hail-warning" role="status" title={`Breaks rule 20.1: ${problem}. The hailed boat must still respond (rule 20.2(b)).`}>
+								<span aria-hidden="true">⚠ </span>
+								breaks rule 20.1<span className="visually-hidden">: {problem}</span>
 							</span>
 						)}
-					</React.Fragment>
+					</span>
 				);
 			})}
 			{world.hails

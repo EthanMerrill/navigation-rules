@@ -4,7 +4,8 @@ import PrototypeBoat from "../assets/PrototypeBoat.svg";
 import type {BoatState} from "../model/world";
 import {BoatView, PointOfSail} from "../rules/rulesEngine";
 import type {WorldAction} from "../state/worldReducer";
-import {centerFromWrapperOrigin, wrapperOrigin} from "../view/scale";
+import {centerFromWrapperOrigin, toPx, wrapperOrigin} from "../view/scale";
+import {ViewContext} from "../view/ViewContext";
 import {obligationTags} from "../ui/obligationLabels";
 
 export interface ImoveableBoatProps {
@@ -47,6 +48,22 @@ const POINT_OF_SAIL_LABELS: Record<PointOfSail, string> = {
 const MoveableBoat = (props: ImoveableBoatProps) => {
 	const {boatState, dispatch, text, boatView} = props;
 	const moveRef = React.useRef<HTMLDivElement>(null);
+	const viewScale = React.useContext(ViewContext).scale;
+	// The heading readout shows while she is being turned with the handle or has keyboard focus.
+	const [rotating, setRotating] = React.useState(false);
+	const [focused, setFocused] = React.useState(false);
+	const heading = ((Math.round(boatState.heading) % 360) + 360) % 360;
+	const tackLabel = boatView.tack === "PORT" ? "Port tack" : boatView.tack === "STARBOARD" ? "Starboard tack" : "Head to wind";
+
+	/** Arrow keys turn her: 5° a press, 1° with Shift. */
+	const onKeyDown = (e: React.KeyboardEvent) => {
+		const step = e.shiftKey ? 1 : 5;
+		const delta = e.key === "ArrowLeft" ? -step : e.key === "ArrowRight" ? step : 0;
+		if (delta === 0) return;
+		e.preventDefault();
+		dispatch({type: "rotateBoat", id: boatState.id, heading: (((heading + delta) % 360) + 360) % 360});
+	};
+	const centre = toPx(boatState);
 
 	// The boat's stored position is its center, but the wrapper is positioned by
 	// its top-left corner; `wrapperOrigin` converts world units to that pixel offset.
@@ -102,6 +119,13 @@ const MoveableBoat = (props: ImoveableBoatProps) => {
 			<div
 				className="boat-wrapper"
 				ref={moveRef}
+				tabIndex={0}
+				role="group"
+				aria-roledescription="boat"
+				aria-label={`${text}, heading ${heading} degrees, ${tackLabel.toLowerCase()}. Left and right arrow keys turn her.`}
+				onKeyDown={onKeyDown}
+				onFocus={() => setFocused(true)}
+				onBlur={() => setFocused(false)}
 				style={{
 					transform,
 				}}>
@@ -173,13 +197,22 @@ const MoveableBoat = (props: ImoveableBoatProps) => {
 					</path>
 				</svg>
 			</div>
+			{(rotating || focused) && (
+				<div className="heading-readout" aria-hidden="true" style={{transform: `translate(${centre.x}px, ${centre.y}px) translate(-50%, -50%) scale(${1 / viewScale})`}}>
+					<span className="heading-readout__degrees">{String(heading).padStart(3, "0")}°</span>
+					<span className="heading-readout__detail">
+						{tackLabel} · {POINT_OF_SAIL_LABELS[boatView.pointOfSail]}
+					</span>
+				</div>
+			)}
 			<MoveableComponent
 				moveRef={moveRef}
 				onDrag={(x, y) => {
 					const center = centerFromWrapperOrigin({x, y});
 					dispatch({type: "moveBoat", id: boatState.id, x: center.x, y: center.y});
 				}}
-				onRotate={(heading) => dispatch({type: "rotateBoat", id: boatState.id, heading})}
+				onRotate={(next) => dispatch({type: "rotateBoat", id: boatState.id, heading: next})}
+				onRotatingChange={setRotating}
 			/>
 		</div>
 	);

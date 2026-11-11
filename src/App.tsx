@@ -8,6 +8,7 @@ import MoveableBoat from "./components/MoveableBoat";
 import MarkMarker from "./components/MarkMarker";
 import ObstructionMarker from "./components/ObstructionMarker";
 import TransomLineOverlay from "./components/TransomLineOverlay";
+import PlayArea from "./components/PlayArea";
 import {createDefaultWorld, worldReducer} from "./state/worldReducer";
 import {useRulesEngine} from "./hooks/useRulesEngine";
 import {scenarioHash, useScenarioRoute} from "./hooks/useScenarioRoute";
@@ -46,31 +47,34 @@ function App() {
 
 	return (
 		<div className="App">
-			<div className="patterns pt1"></div>
 			<style>@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');</style>
-			<AppHeader
-				wind={world.wind}
-				onWindChange={(direction) => dispatch({type: "setWind", direction})}
-				scenarioId={findScenario(scenarioId)?.id ?? ""}
-				onScenarioChange={(id) => {
-					window.location.hash = id ? scenarioHash(id) : "";
-				}}
-				onReset={loadRoute}>
-				<HailControls world={world} dispatch={dispatch} />
-			</AppHeader>
 			<RulesSidebar evaluation={evaluation} />
-			{world.obstructions.map((obstruction) => (
-				<ObstructionMarker key={obstruction.id} obstruction={obstruction} dispatch={dispatch} />
-			))}
-			{world.marks.map((mark) => (
-				<MarkMarker key={mark.id} mark={mark} dispatch={dispatch} />
-			))}
-			{world.boats.map((boat) => (
-				<div className="draggable" key={boat.id}>
-					<MoveableBoat boatState={boat} dispatch={dispatch} text={boat.id} boatView={evaluation.boats[boat.id]} />
-				</div>
-			))}
-			{focusPair && focusA && focusB && <TransomLineOverlay boatA={focusA} boatB={focusB} overlapped={focusPair.overlapped} />}
+			<div className="app-main">
+				<AppHeader
+					wind={world.wind}
+					onWindChange={(direction) => dispatch({type: "setWind", direction})}
+					scenarioId={findScenario(scenarioId)?.id ?? ""}
+					onScenarioChange={(id) => {
+						window.location.hash = id ? scenarioHash(id) : "";
+					}}
+					onReset={loadRoute}>
+					<HailControls world={world} dispatch={dispatch} />
+				</AppHeader>
+				<PlayArea world={world} fitKey={epoch}>
+					{world.obstructions.map((obstruction) => (
+						<ObstructionMarker key={obstruction.id} obstruction={obstruction} dispatch={dispatch} />
+					))}
+					{world.marks.map((mark) => (
+						<MarkMarker key={mark.id} mark={mark} dispatch={dispatch} />
+					))}
+					{world.boats.map((boat) => (
+						<div className="draggable" key={boat.id}>
+							<MoveableBoat boatState={boat} dispatch={dispatch} text={boat.id} boatView={evaluation.boats[boat.id]} />
+						</div>
+					))}
+					{focusPair && focusA && focusB && <TransomLineOverlay boatA={focusA} boatB={focusB} overlapped={focusPair.overlapped} />}
+				</PlayArea>
+			</div>
 		</div>
 	);
 }
