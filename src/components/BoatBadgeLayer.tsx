@@ -5,6 +5,7 @@ import type {BadgeTone, BoatBadge} from "../ui/boatBadge";
 import {type BadgeItem, type BadgeSide, type Circle, layoutBadges} from "../view/badgeLayout";
 import {lengthToPx, toPx} from "../view/scale";
 import {ViewContext} from "../view/ViewContext";
+import {COMMITTEE_BOAT_PX} from "./MarkMarker";
 
 interface BoatBadgeLayerProps {
 	world: WorldState;
@@ -24,8 +25,9 @@ const TONE_CLASS: Record<BadgeTone, string> = {
 const UNMEASURED = {width: 170, lineHeight: 24};
 /** Gap kept between a badge and the edge of the water, in screen px. */
 const VISIBLE_MARGIN_PX = 8;
-/** Radius kept clear around a mark, in stage px. */
+/** Radius kept clear around a mark, in stage px; more for a committee boat. */
 const MARK_RADIUS_PX = 18;
+const COMMITTEE_BOAT_RADIUS_PX = COMMITTEE_BOAT_PX.height / 2;
 
 /**
  * Every boat's badge, upright, laid out together so they do not cover each
@@ -60,7 +62,7 @@ const BoatBadgeLayer = ({world, badges}: BoatBadgeLayerProps) => {
 			return {id: boat.id, centre: toPx(boat), heading: boat.heading, width: size.width / scale, height: size.height / scale};
 		});
 	const obstacles: Circle[] = [
-		...world.marks.map((mark) => ({...toPx(mark), r: MARK_RADIUS_PX})),
+		...world.marks.map((mark) => ({...toPx(mark), r: mark.startEnd === "committee" ? COMMITTEE_BOAT_RADIUS_PX : MARK_RADIUS_PX})),
 		...world.obstructions.map((o) => ({...toPx(o), r: lengthToPx(o.radius)})),
 	];
 	// The water on screen, in stage px, less a small margin.

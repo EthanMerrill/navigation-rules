@@ -10,6 +10,8 @@ interface iMovableComponentProps {
 	onRotate?: (rotation: number) => void;
 	/** Called when a rotation gesture starts and ends, so the target can show a live heading readout. */
 	onRotatingChange?: (rotating: boolean) => void;
+	/** Where the pointer is during a drag (`ended` on release), in screen px: lets the app spot a drag onto the tray. */
+	onDragPointer?: (clientX: number, clientY: number, ended: boolean) => void;
 }
 
 /**
@@ -18,7 +20,7 @@ interface iMovableComponentProps {
  * area's zoom so they stay the same size on screen, and they re-measure the
  * target after every render so they never lag behind it.
  */
-const MovableComponent = ({moveRef, onDrag, onRotate, onRotatingChange}: iMovableComponentProps) => {
+const MovableComponent = ({moveRef, onDrag, onRotate, onRotatingChange, onDragPointer}: iMovableComponentProps) => {
 	const [renderMovable, setRenderMovable] = React.useState(false);
 	const view = React.useContext(ViewContext);
 	const moveableRef = React.useRef<Moveable>(null);
@@ -36,6 +38,7 @@ const MovableComponent = ({moveRef, onDrag, onRotate, onRotatingChange}: iMovabl
 
 	const handleDrag = (e: OnDrag) => {
 		onDrag(e.translate[0], e.translate[1]);
+		onDragPointer?.(e.clientX, e.clientY, false);
 	};
 
 	const handleRotate = (e: OnRotate) => {
@@ -54,6 +57,7 @@ const MovableComponent = ({moveRef, onDrag, onRotate, onRotatingChange}: iMovabl
 			draggable={true}
 			throttleDrag={0}
 			onDrag={handleDrag}
+			onDragEnd={(e) => e.isDrag && onDragPointer?.(e.clientX, e.clientY, true)}
 			rotatable={onRotate !== undefined}
 			rotationPosition="top"
 			throttleRotate={1}

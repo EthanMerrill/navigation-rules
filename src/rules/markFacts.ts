@@ -29,10 +29,38 @@ export interface BoatMarkFacts {
 	nextMark: boolean;
 }
 
-/** The mark a boat is heading for, or undefined once she has finished the course. */
+/**
+ * The mark a boat is heading for, or undefined once she has finished the course.
+ * Normally the mark of her current leg; in a custom scene (`course.inferNextMark`)
+ * it is inferred, see `inferredNextMark`.
+ */
 export function nextMarkOf(world: WorldState, boat: BoatState): Mark | undefined {
+	if (world.course.inferNextMark) return inferredNextMark(world, boat);
 	const id = world.course.legs[boat.nextLegIndex]?.toMarkId;
 	return id === undefined ? undefined : world.marks.find((mark) => mark.id === id);
+}
+
+/**
+ * The next mark of a boat in a scene with no fixed course: the nearest mark
+ * whose zone she is in (so a mark stays her next mark while she rounds it,
+ * even once it is abeam or astern), or else the nearest mark ahead of her abeam
+ * line. Undefined when there is neither.
+ *
+ * APPROXIMATION: the real course is set by the sailing instructions; this is
+ * the mark she is most plausibly sailing for.
+ */
+export function inferredNextMark(world: WorldState, boat: BoatState): Mark | undefined {
+	const forward = headingVector(boat.heading);
+	let best: {mark: Mark; inZone: boolean; distance: number} | undefined;
+	for (const mark of world.marks) {
+		const distance = hullDistanceTo(boat, mark.x, mark.y);
+		const inZone = distance <= ZONE_RADIUS;
+		const ahead = (mark.x - boat.x) * forward.x + (mark.y - boat.y) * forward.y > 0;
+		if (!inZone && !ahead) continue;
+		// A mark whose zone she is in beats any mark she is only sailing towards.
+		if (!best || (inZone && !best.inZone) || (inZone === best.inZone && distance < best.distance)) best = {mark, inZone, distance};
+	}
+	return best?.mark;
 }
 
 /** Shortest distance from any hull vertex of `boat` to the point (`x`, `y`), in hull lengths. */
