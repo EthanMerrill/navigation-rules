@@ -1,6 +1,6 @@
 import type {BoatState, Mark, WorldState} from "../model/world";
 import {createDefaultWorld} from "../state/worldReducer";
-import {ZONE_RADIUS} from "./markFacts";
+import {ZONE_RADIUS, inferredNextMark} from "./markFacts";
 import {computeFacts, markSlotKey} from "./rulesEngine";
 
 // Wind from the north (0 degrees); positions in hull lengths.
@@ -73,5 +73,30 @@ describe("proper course", () => {
 	it("falls back to close-hauled on the current tack with no next mark", () => {
 		expect(properCourse(worldOf([boat("a", 0, 10, 90)], null), "a")).toBeCloseTo(45);
 		expect(properCourse(worldOf([boat("a", 0, 10, 90, 1)]), "a")).toBeCloseTo(45); // past the last leg
+	});
+});
+
+describe("mark facts — inferred next mark (custom scenes)", () => {
+	const ahead: Mark = {id: "ahead", x: 10, y: 2, roundingSide: "port", kind: "rounding"};
+	const astern: Mark = {id: "astern", x: 10, y: 18, roundingSide: "port", kind: "rounding"};
+	const far: Mark = {id: "far", x: 10, y: -20, roundingSide: "port", kind: "rounding"};
+	const custom = (boats: BoatState[], marks: Mark[]): WorldState => ({...createDefaultWorld(), boats, marks, course: {legs: [], inferNextMark: true}});
+
+	it("is the nearest mark ahead of her abeam line, ignoring marks astern", () => {
+		const b = boat("a", 10, 10, 0);
+		expect(inferredNextMark(custom([b], [far, astern, ahead]), b)?.id).toBe("ahead");
+		expect(inferredNextMark(custom([b], [astern]), b)).toBeUndefined();
+	});
+
+	it("keeps a mark she is rounding (in its zone) even once it is abeam or astern", () => {
+		const b = boat("a", 10, 10, 0);
+		const abeam: Mark = {id: "abeam", x: 12, y: 10.5, roundingSide: "port", kind: "rounding"};
+		expect(inferredNextMark(custom([b], [ahead, abeam]), b)?.id).toBe("abeam");
+	});
+
+	it("feeds the mark facts, overriding the course legs", () => {
+		const b = boat("a", 10, 10, 0);
+		const world = {...custom([b], [ahead]), course: {legs: [{toMarkId: "nope"}], inferNextMark: true}};
+		expect(computeFacts(world).marks[markSlotKey("a", "ahead")].nextMark).toBe(true);
 	});
 });

@@ -15,6 +15,8 @@ export interface ImoveableBoatProps {
 	boatView: BoatView;
 	/** The rules that take precedence for her (drawn by `BoatBadgeLayer`; read out in her label here). */
 	badge: BoatBadge;
+	/** Pointer position while she is dragged (see `MoveableComponent`). */
+	onDragPointer?: (clientX: number, clientY: number, ended: boolean) => void;
 }
 
 const STARBOARD_SAIL_PATH = "M10 1C-0.5 14.5 -0.5 61.5 3.5 78.5";
@@ -48,7 +50,7 @@ const POINT_OF_SAIL_LABELS: Record<PointOfSail, string> = {
 };
 
 const MoveableBoat = (props: ImoveableBoatProps) => {
-	const {boatState, dispatch, text, boatView, badge} = props;
+	const {boatState, dispatch, text, boatView, badge, onDragPointer} = props;
 	const moveRef = React.useRef<HTMLDivElement>(null);
 	const viewScale = React.useContext(ViewContext).scale;
 	// The heading readout shows while she is being turned with the handle or has keyboard focus.
@@ -57,8 +59,13 @@ const MoveableBoat = (props: ImoveableBoatProps) => {
 	const heading = ((Math.round(boatState.heading) % 360) + 360) % 360;
 	const tackLabel = boatView.tack === "PORT" ? "Port tack" : boatView.tack === "STARBOARD" ? "Starboard tack" : "Head to wind";
 
-	/** Arrow keys turn her: 5° a press, 1° with Shift. */
+	/** Arrow keys turn her: 5° a press, 1° with Shift. Delete or Backspace removes her. */
 	const onKeyDown = (e: React.KeyboardEvent) => {
+		if (e.key === "Delete" || e.key === "Backspace") {
+			e.preventDefault();
+			dispatch({type: "removeBoat", id: boatState.id});
+			return;
+		}
 		const step = e.shiftKey ? 1 : 5;
 		const delta = e.key === "ArrowLeft" ? -step : e.key === "ArrowRight" ? step : 0;
 		if (delta === 0) return;
@@ -129,7 +136,7 @@ const MoveableBoat = (props: ImoveableBoatProps) => {
 				tabIndex={0}
 				role="group"
 				aria-roledescription="boat"
-				aria-label={`${text}, heading ${heading} degrees, ${tackLabel.toLowerCase()}. ${badge.lines.map((line) => `${line.text} (Rule ${line.rules.map(formatRuleId).join(", ")}). `).join("")}Left and right arrow keys turn her.`}
+				aria-label={`${text}, heading ${heading} degrees, ${tackLabel.toLowerCase()}. ${badge.lines.map((line) => `${line.text} (Rule ${line.rules.map(formatRuleId).join(", ")}). `).join("")}Left and right arrow keys turn her; Delete removes her.`}
 				onKeyDown={onKeyDown}
 				onFocus={() => setFocused(true)}
 				onBlur={() => setFocused(false)}
@@ -180,6 +187,7 @@ const MoveableBoat = (props: ImoveableBoatProps) => {
 				}}
 				onRotate={(next) => dispatch({type: "rotateBoat", id: boatState.id, heading: next})}
 				onRotatingChange={setRotating}
+				onDragPointer={onDragPointer}
 			/>
 		</div>
 	);

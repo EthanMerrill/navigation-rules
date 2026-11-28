@@ -2,7 +2,7 @@
  * World reducer — the single place world state changes. Components dispatch
  * `WorldAction`s; nothing else mutates the world.
  */
-import type {BoatState, Hail, WorldState} from "../model/world";
+import type {BoatState, Hail, Mark, WorldState} from "../model/world";
 import {toWorld} from "../view/scale";
 
 export type WorldAction =
@@ -13,10 +13,22 @@ export type WorldAction =
 	| {type: "addBoat"; boat?: Partial<BoatState>}
 	| {type: "removeBoat"; id: string}
 	| {type: "moveMark"; id: string; x: number; y: number}
+	/** Add a mark centred at (x, y): a rounding mark, a start mark, or a gate (two marks across the wind). */
+	| {type: "addMark"; kind: AddableMarkKind; x: number; y: number}
+	/** Remove a mark; removing either mark of a gate removes both. */
+	| {type: "removeMark"; id: string}
+	/** Switch the side a mark is left on. */
+	| {type: "flipMarkSide"; id: string}
 	| {type: "moveObstruction"; id: string; x: number; y: number}
 	| {type: "hail"; from: string; to: string; kind: Hail["kind"]; at?: number}
 	| {type: "clearHails"}
 	| {type: "loadScenario"; world: WorldState};
+
+/** Marks the user can add. */
+export type AddableMarkKind = "rounding" | "start" | "gate";
+
+/** Half the width of an added gate, in hull lengths: the two zones just touch. */
+export const GATE_HALF_WIDTH = 3;
 
 /** The default scene: two boats abreast on a beam reach, wind from the north. */
 export function createDefaultWorld(): WorldState {
@@ -38,10 +50,43 @@ export function createDefaultWorld(): WorldState {
 
 /** The first `boatN` id not already used by a boat in the world. */
 function nextBoatId(boats: BoatState[]): string {
-	const used = new Set(boats.map((b) => b.id));
-	let n = boats.length + 1;
-	while (used.has(`boat${n}`)) n++;
-	return `boat${n}`;
+	return nextId("boat", boats.map((b) => b.id));
+}
+
+/** The first `<prefix>N` id not already in `used`. */
+function nextId(prefix: string, used: string[]): string {
+	const taken = new Set(used);
+	let n = used.length + 1;
+	while (taken.has(`${prefix}${n}`)) n++;
+	return `${prefix}${n}`;
+}
+
+/**
+ * The marks to add for `kind` centred at (x, y). A gate's marks lie across the
+ * wind: looking downwind, the left mark is left to port and the right one to
+ * starboard, so boats pass between them.
+ */
+function marksToAdd(world: WorldState, kind: AddableMarkKind, x: number, y: number): Mark[] {
+	const ids = world.marks.map((m) => m.id);
+	if (kind !== "gate") return [{id: nextId("mark", ids), x, y, roundingSide: "port", kind}];
+	const left = (((world.wind.direction + 180 - 90) % 360) * Math.PI) / 180;
+	const dx = Math.sin(left) * GATE_HALF_WIDTH;
+	const dy = -Math.cos(left) * GATE_HALF_WIDTH;
+	const gateId = nextId("gate", world.marks.flatMap((m) => (m.gateId ? [m.gateId] : [])));
+	const portId = nextId("mark", ids);
+	const starboardId = nextId("mark", [...ids, portId]);
+	return [
+		{id: portId, x: x + dx, y: y + dy, roundingSide: "port", kind: "gate", gateId},
+		{id: starboardId, x: x - dx, y: y - dy, roundingSide: "starboard", kind: "gate", gateId},
+	];
+}
+
+/**
+ * A world the user has edited (boats or marks added or removed): a custom scene,
+ * whose course is no longer the scenario's, so each boat's next mark is inferred.
+ */
+function customised(world: WorldState): WorldState {
+	return {...world, course: {...world.course, inferNextMark: true}};
 }
 
 /** The first `hailN` id not already used by a hail in the world. */
@@ -71,10 +116,25 @@ export function worldReducer(world: WorldState, action: WorldAction): WorldState
 			const id = action.boat?.id ?? nextBoatId(world.boats);
 			if (world.boats.some((b) => b.id === id)) return world;
 			const boat: BoatState = {id, x: 2, y: 2, heading: 90, nextLegIndex: 0, ...action.boat};
-			return {...world, boats: [...world.boats, {...boat, id}]};
+			return customised({...world, boats: [...world.boats, {...boat, id}]});
 		}
 		case "removeBoat":
-			return {...world, boats: world.boats.filter((boat) => boat.id !== action.id), hails: world.hails.filter((h) => h.from !== action.id && h.to !== action.id)};
+			if (!world.boats.some((boat) => boat.id === action.id)) return world;
+			return customised({...world, boats: world.boats.filter((boat) => boat.id !== action.id), hails: world.hails.filter((h) => h.from !== action.id && h.to !== action.id)});
+		case "addMark":
+			return customised({...world, marks: [...world.marks, ...marksToAdd(world, action.kind, action.x, action.y)]});
+		case "removeMark": {
+			const mark = world.marks.find((m) => m.id === action.id);
+			if (!mark) return world;
+			const gone = new Set(world.marks.filter((m) => m.id === mark.id || (mark.gateId !== undefined && m.gateId === mark.gateId)).map((m) => m.id));
+			return customised({
+				...world,
+				marks: world.marks.filter((m) => !gone.has(m.id)),
+				course: {...world.course, legs: world.course.legs.filter((leg) => !gone.has(leg.toMarkId))},
+			});
+		}
+		case "flipMarkSide":
+			return {...world, marks: world.marks.map((mark) => (mark.id === action.id ? {...mark, roundingSide: mark.roundingSide === "port" ? "starboard" : "port"} : mark))};
 		case "hail": {
 			// The same call between the same boats is not made twice.
 			if (world.hails.some((h) => h.from === action.from && h.to === action.to && h.kind === action.kind)) return world;

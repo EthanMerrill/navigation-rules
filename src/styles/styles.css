@@ -1054,6 +1054,9 @@
 
 .boat-wrapper {
 	cursor: move;
+	/* The hull image is centred in the wrapper (HULL_IMAGE_W_PX inside WRAPPER_W_PX), so her
+	   centreline is the wrapper's centre: the mast, the rotation pivot and the rules all assume it. */
+	text-align: center;
 	outline: none;
 }
 
@@ -1162,4 +1165,198 @@
 	color: #555;
 	font-size: 10px;
 	font-weight: 500;
+}
+
+/* "Add" tray under the scenario picker: drag items onto the water; drop items back on it to remove them. */
+.palette {
+	position: relative;
+	display: flex;
+	align-items: center;
+	gap: 8px 10px;
+	margin: -2px -6px;
+	padding: 2px 6px;
+	border: 1.5px dashed transparent;
+	border-radius: 8px;
+	transition:
+		border-color 0.15s ease,
+		background 0.15s ease;
+}
+
+.palette__items {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+}
+
+.palette__item {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 3px 9px 3px 6px;
+	border: 1px solid #d6d6e0;
+	border-radius: 6px;
+	background: #fff;
+	font-family: inter;
+	font-size: 12px;
+	font-weight: 600;
+	color: #333;
+	cursor: grab;
+	touch-action: none;
+	user-select: none;
+}
+
+.palette__item:hover {
+	border-color: #1565c0;
+	background: #f3f7fd;
+}
+
+.palette__item:active {
+	cursor: grabbing;
+}
+
+.palette__boat path {
+	fill: #fff;
+	stroke: #1d2433;
+	stroke-width: 1.5;
+	stroke-linejoin: round;
+}
+
+.palette__mark {
+	display: inline-block;
+	width: 12px;
+	height: 12px;
+	box-sizing: border-box;
+	border: 2px solid #e65100;
+	border-radius: 50%;
+	background: #ff9800;
+}
+
+.palette__mark--start {
+	border-color: #c49000;
+	border-radius: 3px;
+	background: #ffd54f;
+}
+
+.palette__gate {
+	display: inline-flex;
+	gap: 4px;
+}
+
+.palette__gate .palette__mark {
+	width: 9px;
+	height: 9px;
+}
+
+/* While something on the water is dragged, the tray is a drop target. */
+.palette__remove {
+	position: absolute;
+	inset: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 6px;
+	border-radius: 7px;
+	background: #fdecea;
+	color: #c62828;
+	font-family: inter;
+	font-size: 12px;
+	font-weight: 700;
+	opacity: 0;
+	pointer-events: none;
+	transition: opacity 0.15s ease;
+}
+
+.palette--removal {
+	border-color: #e0524f;
+}
+
+.palette--removal .palette__remove {
+	opacity: 0.92;
+}
+
+.palette--removal-over .palette__remove {
+	opacity: 1;
+	background: #e0524f;
+	color: #fff;
+}
+
+/* The item being dragged in from the tray: icon-sized over the tray, real size over the water. */
+.ghost {
+	position: fixed;
+	top: 0;
+	left: 0;
+	width: 0;
+	height: 0;
+	pointer-events: none;
+	z-index: 10000;
+}
+
+.ghost__body {
+	position: absolute;
+	transform-origin: 0 0;
+	transition: transform 0.18s ease;
+	opacity: 0.85;
+}
+
+.ghost__boat,
+.ghost__mark,
+.ghost__zone {
+	position: absolute;
+	box-sizing: border-box;
+}
+
+.ghost__boat {
+	filter: drop-shadow(0 3px 6px rgba(20, 30, 60, 0.35));
+}
+
+.ghost__mark {
+	border: 2px solid #e65100;
+	border-radius: 50%;
+	background: #ff9800;
+	box-shadow: 0 3px 6px rgba(20, 30, 60, 0.3);
+}
+
+.ghost__mark--start {
+	border-color: #c49000;
+	border-radius: 6px;
+	background: #ffd54f;
+}
+
+.ghost__zone {
+	border: 2px dashed rgba(255, 152, 0, 0.7);
+	border-radius: 50%;
+	opacity: 0;
+	transition: opacity 0.18s ease;
+}
+
+.ghost--over-water .ghost__zone {
+	opacity: 1;
+}
+
+/* Mark kinds on the water. */
+.mark-marker--start {
+	border-color: #c49000;
+	border-radius: 6px;
+	background: #ffd54f;
+}
+
+.mark-marker--start .mark-marker__arrow {
+	color: #5d4300;
+}
+
+.mark-marker:focus-visible {
+	outline: 2px dashed #1565c0;
+	outline-offset: 4px;
+}
+
+/* The line between the two marks of a gate. */
+.gate-line {
+	position: absolute;
+	top: 0;
+	left: 0;
+	height: 0;
+	border-top: 2px dashed rgba(230, 81, 0, 0.55);
+	transform-origin: 0 0;
+	pointer-events: none;
+	z-index: 1;
 }

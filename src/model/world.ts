@@ -33,7 +33,15 @@ export interface Mark {
 	x: number;
 	y: number;
 	roundingSide: "port" | "starboard";
-	kind: "start" | "windward" | "leeward" | "gate" | "finish";
+	/**
+	 * What the mark is for. Only "start" (Rule 18 does not apply, Section C
+	 * preamble) and "gate" (Rule 18.4 does not apply) change the rules;
+	 * "rounding", "windward" and "leeward" are labels: whether boats beat or run
+	 * to a mark is worked out from their headings.
+	 */
+	kind: "start" | "rounding" | "windward" | "leeward" | "gate" | "finish";
+	/** The two marks of a gate share this id, so they are added and removed together. */
+	gateId?: string;
 }
 
 /** An obstruction (circle is enough for now). `radius` is in hull lengths. */
@@ -54,6 +62,12 @@ export interface RaceState {
 /** The course as an ordered list of legs, each heading for a mark. */
 export interface CourseState {
 	legs: {toMarkId: string}[];
+	/**
+	 * When true (a custom scene, where boats or marks were added or removed)
+	 * `legs` is ignored and each boat's next mark is inferred: the nearest mark
+	 * whose zone she is in, or else the nearest mark ahead of her abeam line.
+	 */
+	inferNextMark?: boolean;
 }
 
 /**
