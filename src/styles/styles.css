@@ -1231,10 +1231,22 @@
 	background: #ff9800;
 }
 
-.palette__mark--start {
-	border-color: #c49000;
-	border-radius: 3px;
-	background: #ffd54f;
+.palette__start-line-line {
+	stroke: #1d2433;
+	stroke-width: 1.5;
+	stroke-dasharray: 3 2;
+}
+
+.palette__pin {
+	fill: #ffd54f;
+	stroke: #c49000;
+	stroke-width: 1.5;
+}
+
+.palette__committee {
+	fill: #fff;
+	stroke: #1d2433;
+	stroke-width: 1.5;
 }
 
 .palette__gate {
@@ -1316,10 +1328,27 @@
 	box-shadow: 0 3px 6px rgba(20, 30, 60, 0.3);
 }
 
-.ghost__mark--start {
-	border-color: #c49000;
-	border-radius: 6px;
+.ghost__pin,
+.ghost__committee,
+.ghost__start-line {
+	position: absolute;
+	box-sizing: border-box;
+}
+
+.ghost__pin {
+	border: 2px solid #c49000;
+	border-radius: 50%;
 	background: #ffd54f;
+}
+
+.ghost__committee {
+	filter: drop-shadow(0 3px 6px rgba(20, 30, 60, 0.3));
+}
+
+.ghost__start-line {
+	height: 0;
+	border-top: 2px dashed #1d2433;
+	transform-origin: 0 0;
 }
 
 .ghost__zone {
@@ -1342,6 +1371,56 @@
 
 .mark-marker--start .mark-marker__arrow {
 	color: #5d4300;
+}
+
+/* Start line ends: the pin is a small yellow buoy, the committee boat a boat at anchor. */
+.mark-marker--pin {
+	border-color: #c49000;
+	background: #ffd54f;
+}
+
+.mark-marker--committee {
+	border: none;
+	border-radius: 0;
+	background: none;
+	filter: drop-shadow(0 1px 2px rgba(20, 30, 60, 0.35));
+}
+
+.committee-boat {
+	display: block;
+}
+
+.committee-boat__hull {
+	fill: #fff;
+	stroke: #1d2433;
+	stroke-width: 1.5;
+}
+
+.committee-boat__cabin {
+	fill: #cfd8dc;
+	stroke: #1d2433;
+	stroke-width: 1;
+}
+
+.committee-boat__mast {
+	stroke: #1d2433;
+	stroke-width: 1.2;
+}
+
+.committee-boat__flag {
+	fill: #ff9800;
+}
+
+/* The start line between the committee boat and the pin. */
+.start-line {
+	position: absolute;
+	top: 0;
+	left: 0;
+	height: 0;
+	border-top: 2px dashed #1d2433;
+	transform-origin: 0 0;
+	pointer-events: none;
+	z-index: 1;
 }
 
 .mark-marker:focus-visible {

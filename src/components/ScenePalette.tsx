@@ -1,9 +1,9 @@
 import React from "react";
 import {createPortal} from "react-dom";
 import PrototypeBoat from "../assets/PrototypeBoat.svg";
-import {GATE_HALF_WIDTH, type AddableMarkKind} from "../state/worldReducer";
+import {pairEndOffset, type AddableMarkKind} from "../state/worldReducer";
 import {HULL_IMAGE_H_PX, HULL_IMAGE_W_PX, PX_PER_HULL_LENGTH, WRAPPER_H_PX, type Vec2} from "../view/scale";
-import {MARK_SIZE_PX, ZONE_RADIUS_HULL_LENGTHS} from "./MarkMarker";
+import {COMMITTEE_BOAT_PX, CommitteeBoatShape, MARK_SIZE_PX, PIN_PX, ZONE_RADIUS_HULL_LENGTHS} from "./MarkMarker";
 import type {PlayAreaApi} from "./PlayArea";
 
 /** Things the tray can add to the water. */
@@ -23,7 +23,7 @@ interface ScenePaletteProps {
 const ITEMS: Array<{kind: PaletteItemKind; label: string; hint: string}> = [
 	{kind: "boat", label: "Boat", hint: "Drag a boat onto the water (or click to add one in the middle)"},
 	{kind: "rounding", label: "Mark", hint: "Drag a mark onto the water; it is left to port (double-click it to switch)"},
-	{kind: "start", label: "Start", hint: "Drag a start mark onto the water; Rule 18 does not apply at a start mark"},
+	{kind: "startLine", label: "Start line", hint: "Drag a start line onto the water: the committee boat at the starboard end, the pin at the port end; Rule 18 does not apply at a start mark"},
 	{kind: "gate", label: "Gate", hint: "Drag a gate onto the water: two marks across the wind; Rule 18.4 does not apply at a gate"},
 ];
 
@@ -127,18 +127,30 @@ const PaletteIcon = ({kind}: {kind: PaletteItemKind}) => {
 				<span className="palette__mark" />
 			</span>
 		);
-	return <span className={`palette__mark${kind === "start" ? " palette__mark--start" : ""}`} aria-hidden="true" />;
+	if (kind === "startLine")
+		return (
+			<svg className="palette__start-line" viewBox="0 0 34 14" width="30" height="12" aria-hidden="true">
+				<path className="palette__start-line-line" d="M5 7 H26" />
+				<circle className="palette__pin" cx="4.5" cy="7" r="3.5" />
+				<rect className="palette__committee" x="24" y="3" width="9" height="8" rx="2" />
+			</svg>
+		);
+	return <span className="palette__mark" aria-hidden="true" />;
 };
 
 /** What follows the pointer while an item is dragged from the tray: icon-sized over the tray, real size over the water. */
 const Ghost = ({kind, x, y, overWater, scale, windDirection}: {kind: PaletteItemKind; x: number; y: number; overWater: boolean; scale: number; windDirection: number}) => {
 	const zonePx = ZONE_RADIUS_HULL_LENGTHS * PX_PER_HULL_LENGTH;
-	const mark = (dx: number, dy: number, start = false, key?: string) => (
+	const mark = (dx: number, dy: number, key?: string) => (
 		<React.Fragment key={key}>
-			{!start && <span className="ghost__zone" style={{width: zonePx * 2, height: zonePx * 2, left: dx - zonePx, top: dy - zonePx}} />}
-			<span className={`ghost__mark${start ? " ghost__mark--start" : ""}`} style={{width: MARK_SIZE_PX, height: MARK_SIZE_PX, left: dx - MARK_SIZE_PX / 2, top: dy - MARK_SIZE_PX / 2}} />
+			<span className="ghost__zone" style={{width: zonePx * 2, height: zonePx * 2, left: dx - zonePx, top: dy - zonePx}} />
+			<span className="ghost__mark" style={{width: MARK_SIZE_PX, height: MARK_SIZE_PX, left: dx - MARK_SIZE_PX / 2, top: dy - MARK_SIZE_PX / 2}} />
 		</React.Fragment>
 	);
+	// The starboard-hand end of a gate or start line, in stage px from the middle.
+	const end = pairEndOffset(windDirection);
+	const ex = end.x * PX_PER_HULL_LENGTH;
+	const ey = end.y * PX_PER_HULL_LENGTH;
 
 	let body: React.ReactNode;
 	if (kind === "boat") {
@@ -152,12 +164,29 @@ const Ghost = ({kind, x, y, overWater, scale, windDirection}: {kind: PaletteItem
 			/>
 		);
 	} else if (kind === "gate") {
-		const left = ((windDirection + 90) * Math.PI) / 180;
-		const dx = Math.sin(left) * GATE_HALF_WIDTH * PX_PER_HULL_LENGTH;
-		const dy = -Math.cos(left) * GATE_HALF_WIDTH * PX_PER_HULL_LENGTH;
-		body = [mark(dx, dy, false, "a"), mark(-dx, -dy, false, "b")];
+		body = [mark(ex, ey, "a"), mark(-ex, -ey, "b")];
+	} else if (kind === "startLine") {
+		const length = 2 * Math.hypot(ex, ey);
+		const angle = (Math.atan2(ey, ex) * 180) / Math.PI;
+		body = (
+			<>
+				<span className="ghost__start-line" style={{width: length, left: -ex, top: -ey, transform: `rotate(${angle}deg)`}} />
+				<span className="ghost__pin" style={{width: PIN_PX, height: PIN_PX, left: -ex - PIN_PX / 2, top: -ey - PIN_PX / 2}} />
+				<span
+					className="ghost__committee"
+					style={{
+						width: COMMITTEE_BOAT_PX.width,
+						height: COMMITTEE_BOAT_PX.height,
+						left: ex - COMMITTEE_BOAT_PX.width / 2,
+						top: ey - COMMITTEE_BOAT_PX.height / 2,
+						transform: `rotate(${windDirection}deg)`,
+					}}>
+					<CommitteeBoatShape />
+				</span>
+			</>
+		);
 	} else {
-		body = mark(0, 0, kind === "start");
+		body = mark(0, 0);
 	}
 
 	return (

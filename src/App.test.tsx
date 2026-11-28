@@ -47,6 +47,9 @@ test("a tray item clicked from the keyboard adds it, and the picker then shows a
 	expect(screen.getByLabelText("Scenario")).toHaveDisplayValue("Custom scenario");
 	fireEvent.click(screen.getByRole("button", {name: "Add gate"}), {detail: 0});
 	expect(screen.getAllByRole("group", {name: /^Gate mark/})).toHaveLength(2);
+	fireEvent.click(screen.getByRole("button", {name: "Add start line"}), {detail: 0});
+	expect(screen.getByRole("group", {name: /^Committee boat/})).toBeInTheDocument();
+	expect(screen.getByRole("group", {name: /^Pin/})).toBeInTheDocument();
 });
 
 test("Delete removes a focused boat or mark; Reset brings the scenario back", () => {

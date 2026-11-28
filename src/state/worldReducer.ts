@@ -13,9 +13,9 @@ export type WorldAction =
 	| {type: "addBoat"; boat?: Partial<BoatState>}
 	| {type: "removeBoat"; id: string}
 	| {type: "moveMark"; id: string; x: number; y: number}
-	/** Add a mark centred at (x, y): a rounding mark, a start mark, or a gate (two marks across the wind). */
+	/** Add a mark centred at (x, y): a rounding mark, a start line or a gate (each a pair of marks across the wind). */
 	| {type: "addMark"; kind: AddableMarkKind; x: number; y: number}
-	/** Remove a mark; removing either mark of a gate removes both. */
+	/** Remove a mark; removing either mark of a gate or start line removes both. */
 	| {type: "removeMark"; id: string}
 	/** Switch the side a mark is left on. */
 	| {type: "flipMarkSide"; id: string}
@@ -25,10 +25,20 @@ export type WorldAction =
 	| {type: "loadScenario"; world: WorldState};
 
 /** Marks the user can add. */
-export type AddableMarkKind = "rounding" | "start" | "gate";
+export type AddableMarkKind = "rounding" | "startLine" | "gate";
 
-/** Half the width of an added gate, in hull lengths: the two zones just touch. */
+/** Half the width of an added gate or start line, in hull lengths: a gate's two zones just touch. */
 export const GATE_HALF_WIDTH = 3;
+
+/**
+ * Offset (hull lengths) from the middle of a gate or start line to its
+ * starboard-hand end: to the right looking upwind, which is also to the left
+ * looking downwind. The other end is at minus this.
+ */
+export function pairEndOffset(windDirection: number): {x: number; y: number} {
+	const right = (((windDirection + 90) % 360) * Math.PI) / 180;
+	return {x: Math.sin(right) * GATE_HALF_WIDTH, y: -Math.cos(right) * GATE_HALF_WIDTH};
+}
 
 /** The default scene: two boats abreast on a beam reach, wind from the north. */
 export function createDefaultWorld(): WorldState {
@@ -62,22 +72,29 @@ function nextId(prefix: string, used: string[]): string {
 }
 
 /**
- * The marks to add for `kind` centred at (x, y). A gate's marks lie across the
- * wind: looking downwind, the left mark is left to port and the right one to
- * starboard, so boats pass between them.
+ * The marks to add for `kind` centred at (x, y). Pairs lie across the wind:
+ * - a gate: looking downwind, the left mark is left to port and the right one
+ *   to starboard, so boats pass between them;
+ * - a start line: the committee boat at the starboard end (right, looking
+ *   upwind) and the pin at the port end; boats cross between them, leaving the
+ *   committee boat to starboard and the pin to port.
  */
 function marksToAdd(world: WorldState, kind: AddableMarkKind, x: number, y: number): Mark[] {
 	const ids = world.marks.map((m) => m.id);
-	if (kind !== "gate") return [{id: nextId("mark", ids), x, y, roundingSide: "port", kind}];
-	const left = (((world.wind.direction + 180 - 90) % 360) * Math.PI) / 180;
-	const dx = Math.sin(left) * GATE_HALF_WIDTH;
-	const dy = -Math.cos(left) * GATE_HALF_WIDTH;
-	const gateId = nextId("gate", world.marks.flatMap((m) => (m.gateId ? [m.gateId] : [])));
-	const portId = nextId("mark", ids);
-	const starboardId = nextId("mark", [...ids, portId]);
+	if (kind === "rounding") return [{id: nextId("mark", ids), x, y, roundingSide: "port", kind: "rounding"}];
+	const {x: dx, y: dy} = pairEndOffset(world.wind.direction);
+	const pairId = nextId(kind === "gate" ? "gate" : "start", world.marks.flatMap((m) => (m.pairId ? [m.pairId] : [])));
+	const a = nextId("mark", ids);
+	const b = nextId("mark", [...ids, a]);
+	if (kind === "gate") {
+		return [
+			{id: a, x: x + dx, y: y + dy, roundingSide: "port", kind: "gate", pairId},
+			{id: b, x: x - dx, y: y - dy, roundingSide: "starboard", kind: "gate", pairId},
+		];
+	}
 	return [
-		{id: portId, x: x + dx, y: y + dy, roundingSide: "port", kind: "gate", gateId},
-		{id: starboardId, x: x - dx, y: y - dy, roundingSide: "starboard", kind: "gate", gateId},
+		{id: a, x: x + dx, y: y + dy, roundingSide: "starboard", kind: "start", pairId, startEnd: "committee"},
+		{id: b, x: x - dx, y: y - dy, roundingSide: "port", kind: "start", pairId, startEnd: "pin"},
 	];
 }
 
@@ -126,7 +143,7 @@ export function worldReducer(world: WorldState, action: WorldAction): WorldState
 		case "removeMark": {
 			const mark = world.marks.find((m) => m.id === action.id);
 			if (!mark) return world;
-			const gone = new Set(world.marks.filter((m) => m.id === mark.id || (mark.gateId !== undefined && m.gateId === mark.gateId)).map((m) => m.id));
+			const gone = new Set(world.marks.filter((m) => m.id === mark.id || (mark.pairId !== undefined && m.pairId === mark.pairId)).map((m) => m.id));
 			return customised({
 				...world,
 				marks: world.marks.filter((m) => !gone.has(m.id)),
@@ -134,6 +151,8 @@ export function worldReducer(world: WorldState, action: WorldAction): WorldState
 			});
 		}
 		case "flipMarkSide":
+			// The ends of a start line are left on the sides the line dictates.
+			if (world.marks.find((m) => m.id === action.id)?.startEnd) return world;
 			return {...world, marks: world.marks.map((mark) => (mark.id === action.id ? {...mark, roundingSide: mark.roundingSide === "port" ? "starboard" : "port"} : mark))};
 		case "hail": {
 			// The same call between the same boats is not made twice.

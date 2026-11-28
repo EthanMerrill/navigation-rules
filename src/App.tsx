@@ -5,7 +5,7 @@ import RulesSidebar from "./components/RulesSidebar";
 import AppHeader from "./components/AppHeader";
 import HailControls from "./components/HailControls";
 import MoveableBoat from "./components/MoveableBoat";
-import MarkMarker, {GateLines} from "./components/MarkMarker";
+import MarkMarker, {PairLines} from "./components/MarkMarker";
 import ScenePalette, {newBoatHeading, type PaletteItemKind} from "./components/ScenePalette";
 import ObstructionMarker from "./components/ObstructionMarker";
 import TransomLineOverlay from "./components/TransomLineOverlay";
@@ -91,9 +91,9 @@ function App() {
 					{world.obstructions.map((obstruction) => (
 						<ObstructionMarker key={obstruction.id} obstruction={obstruction} dispatch={dispatch} />
 					))}
-					<GateLines marks={world.marks} />
+					<PairLines marks={world.marks} />
 					{world.marks.map((mark) => (
-						<MarkMarker key={mark.id} mark={mark} dispatch={dispatch} onDragPointer={dragPointer({type: "removeMark", id: mark.id})} />
+						<MarkMarker key={mark.id} mark={mark} dispatch={dispatch} windDirection={world.wind.direction} onDragPointer={dragPointer({type: "removeMark", id: mark.id})} />
 					))}
 					{world.boats.map((boat) => (
 						<div className="draggable" key={boat.id}>

@@ -40,8 +40,10 @@ export interface Mark {
 	 * to a mark is worked out from their headings.
 	 */
 	kind: "start" | "rounding" | "windward" | "leeward" | "gate" | "finish";
-	/** The two marks of a gate share this id, so they are added and removed together. */
-	gateId?: string;
+	/** The two marks of a gate or of a start line share this id, so they are added and removed together. */
+	pairId?: string;
+	/** Which end of a start line this mark is: the committee boat (starboard end) or the pin (port end). */
+	startEnd?: "committee" | "pin";
 }
 
 /** An obstruction (circle is enough for now). `radius` is in hull lengths. */

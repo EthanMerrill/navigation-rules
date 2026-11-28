@@ -19,23 +19,37 @@ describe("worldReducer — adding and removing boats and marks", () => {
 		expect(worldReducer(world, {type: "removeMark", id: "nope"})).toBe(world);
 	});
 
-	it("adds a rounding mark left to port and a start mark with fresh ids", () => {
+	it("adds a rounding mark left to port with a fresh id", () => {
 		let world = worldReducer(createDefaultWorld(), {type: "addMark", kind: "rounding", x: 4, y: 5});
-		world = worldReducer(world, {type: "addMark", kind: "start", x: 8, y: 9});
+		world = worldReducer(world, {type: "addMark", kind: "rounding", x: 8, y: 9});
 		expect(world.marks).toEqual([
 			{id: "mark1", x: 4, y: 5, roundingSide: "port", kind: "rounding"},
-			{id: "mark2", x: 8, y: 9, roundingSide: "port", kind: "start"},
+			{id: "mark2", x: 8, y: 9, roundingSide: "port", kind: "rounding"},
 		]);
+	});
+
+	it("lays a start line across the wind: committee boat at the starboard end (right, looking upwind), pin at the port end", () => {
+		// Wind from the north: looking upwind (north) right is east.
+		const world = worldReducer({...createDefaultWorld(), wind: {direction: 0}}, {type: "addMark", kind: "startLine", x: 10, y: 10});
+		const [committee, pin] = world.marks;
+		expect(committee).toMatchObject({kind: "start", startEnd: "committee", roundingSide: "starboard", pairId: "start1"});
+		expect(committee.x).toBeCloseTo(10 + GATE_HALF_WIDTH);
+		expect(committee.y).toBeCloseTo(10);
+		expect(pin).toMatchObject({kind: "start", startEnd: "pin", roundingSide: "port", pairId: "start1"});
+		expect(pin.x).toBeCloseTo(10 - GATE_HALF_WIDTH);
+		// Its ends are left on the sides the line sets, and go together.
+		expect(worldReducer(world, {type: "flipMarkSide", id: committee.id})).toBe(world);
+		expect(worldReducer(world, {type: "removeMark", id: pin.id}).marks).toEqual([]);
 	});
 
 	it("lays a gate across the wind: looking downwind the left mark is left to port, the right to starboard", () => {
 		// Wind from the north: looking downwind (south) left is east.
 		const world = worldReducer({...createDefaultWorld(), wind: {direction: 0}}, {type: "addMark", kind: "gate", x: 10, y: 10});
 		const [a, b] = world.marks;
-		expect(a).toMatchObject({kind: "gate", roundingSide: "port", gateId: "gate1"});
+		expect(a).toMatchObject({kind: "gate", roundingSide: "port", pairId: "gate1"});
 		expect(a.x).toBeCloseTo(10 + GATE_HALF_WIDTH);
 		expect(a.y).toBeCloseTo(10);
-		expect(b).toMatchObject({kind: "gate", roundingSide: "starboard", gateId: "gate1"});
+		expect(b).toMatchObject({kind: "gate", roundingSide: "starboard", pairId: "gate1"});
 		expect(b.x).toBeCloseTo(10 - GATE_HALF_WIDTH);
 	});
 
