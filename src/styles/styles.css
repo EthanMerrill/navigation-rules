@@ -1390,6 +1390,11 @@
 	display: block;
 }
 
+/* Strokes keep their weight however large the boat is drawn. */
+.committee-boat * {
+	vector-effect: non-scaling-stroke;
+}
+
 .committee-boat__hull {
 	fill: #fff;
 	stroke: #1d2433;

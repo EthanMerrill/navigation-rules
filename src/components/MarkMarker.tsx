@@ -11,7 +11,7 @@ export const ZONE_RADIUS_HULL_LENGTHS = 3;
 export const MARK_SIZE_PX = 28;
 
 /** Size in stage px of a start line's committee boat (bow up, before she swings to the wind) and pin. */
-export const COMMITTEE_BOAT_PX = {width: 24, height: 56};
+export const COMMITTEE_BOAT_PX = {width: 48, height: 112};
 export const PIN_PX = 22;
 
 /** The size in stage px of a mark's draggable body. */
