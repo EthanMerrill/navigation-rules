@@ -1,4 +1,4 @@
-import {useEffect, useReducer, useRef, useState} from "react";
+import {useEffect, useMemo, useReducer, useRef, useState} from "react";
 import "./App.css";
 import "./styles/styles.css";
 import RulesSidebar from "./components/RulesSidebar";
@@ -8,12 +8,14 @@ import MoveableBoat from "./components/MoveableBoat";
 import MarkMarker from "./components/MarkMarker";
 import ObstructionMarker from "./components/ObstructionMarker";
 import TransomLineOverlay from "./components/TransomLineOverlay";
+import BoatBadgeLayer from "./components/BoatBadgeLayer";
 import PlayArea from "./components/PlayArea";
 import {createDefaultWorld, worldReducer} from "./state/worldReducer";
 import {useRulesEngine} from "./hooks/useRulesEngine";
 import {scenarioHash, useScenarioRoute} from "./hooks/useScenarioRoute";
 import {cloneWorld, findScenario} from "./scenarios";
 import type {WorldState} from "./model/world";
+import {boatBadge} from "./ui/boatBadge";
 
 /** A fresh copy of the world for a scenario id; the default scene when the id is null or unknown. */
 function worldForRoute(id: string | null): WorldState {
@@ -27,6 +29,8 @@ function App() {
 	const [world, dispatch] = useReducer(worldReducer, scenarioId, worldForRoute);
 	// Bumped whenever a scenario is loaded, so the rules engine starts from empty memory.
 	const [epoch, setEpoch] = useState(0);
+	// True while the pointer is held on the water: the sidebar waits for the drag to end before re-sorting.
+	const [pointerHeld, setPointerHeld] = useState(false);
 
 	const loadRoute = () => {
 		dispatch({type: "loadScenario", world: worldForRoute(scenarioId)});
@@ -41,18 +45,16 @@ function App() {
 	}, [scenarioId]);
 
 	const evaluation = useRulesEngine(world, epoch);
+	const badges = useMemo(() => Object.fromEntries(world.boats.map((boat) => [boat.id, boatBadge(boat.id, evaluation.obligations)])), [world.boats, evaluation]);
 	const focusPair = evaluation.focusPair ? evaluation.pairs[evaluation.focusPair] : null;
 	const focusA = focusPair && world.boats.find((boat) => boat.id === focusPair.a);
 	const focusB = focusPair && world.boats.find((boat) => boat.id === focusPair.b);
 
 	return (
 		<div className="App">
-			<style>@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');</style>
-			<RulesSidebar evaluation={evaluation} />
+			<RulesSidebar evaluation={evaluation} interacting={pointerHeld} resetKey={epoch} />
 			<div className="app-main">
 				<AppHeader
-					wind={world.wind}
-					onWindChange={(direction) => dispatch({type: "setWind", direction})}
 					scenarioId={findScenario(scenarioId)?.id ?? ""}
 					onScenarioChange={(id) => {
 						window.location.hash = id ? scenarioHash(id) : "";
@@ -60,7 +62,7 @@ function App() {
 					onReset={loadRoute}>
 					<HailControls world={world} dispatch={dispatch} />
 				</AppHeader>
-				<PlayArea world={world} fitKey={epoch}>
+				<PlayArea world={world} fitKey={epoch} onWindChange={(direction) => dispatch({type: "setWind", direction})} onPointerHeldChange={setPointerHeld}>
 					{world.obstructions.map((obstruction) => (
 						<ObstructionMarker key={obstruction.id} obstruction={obstruction} dispatch={dispatch} />
 					))}
@@ -69,9 +71,10 @@ function App() {
 					))}
 					{world.boats.map((boat) => (
 						<div className="draggable" key={boat.id}>
-							<MoveableBoat boatState={boat} dispatch={dispatch} text={boat.id} boatView={evaluation.boats[boat.id]} />
+							<MoveableBoat boatState={boat} dispatch={dispatch} text={boat.id} boatView={evaluation.boats[boat.id]} badge={badges[boat.id]} />
 						</div>
 					))}
+					<BoatBadgeLayer world={world} badges={badges} />
 					{focusPair && focusA && focusB && <TransomLineOverlay boatA={focusA} boatB={focusB} overlapped={focusPair.overlapped} />}
 				</PlayArea>
 			</div>

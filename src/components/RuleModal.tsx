@@ -1,7 +1,7 @@
 import {useEffect} from "react";
 import {createPortal} from "react-dom";
 import {motion, AnimatePresence} from "motion/react";
-import type {RuleContent} from "../rules/rulesEngine";
+import {formatRuleId, type RuleContent} from "../rules/rulesEngine";
 
 /** The content the modal shows; both `RuleState` and `RuleContent` satisfy it. */
 export type RuleModalRule = Pick<RuleContent, "id" | "title" | "description" | "fullText" | "laymanExplanation" | "note">;
@@ -37,7 +37,7 @@ const RuleModal = ({rule, onClose}: RuleModalProps) => {
 						transition={{type: "spring", stiffness: 350, damping: 30}}>
 						<div className="rule-modal__header">
 							<h2 id="rule-modal-title">
-								Rule {rule.id} — {rule.title}
+								Rule {formatRuleId(rule.id)} — {rule.title}
 							</h2>
 							<button type="button" className="rule-modal__close" onClick={onClose} aria-label="Close">
 								×

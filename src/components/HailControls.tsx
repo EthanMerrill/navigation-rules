@@ -1,6 +1,6 @@
 import React from "react";
 import type {WorldState} from "../model/world";
-import {computeFacts, hailProblem, hailTarget, replyTo} from "../rules/rulesEngine";
+import {approachesObstruction, computeFacts, hailProblem, hailTarget, replyTo} from "../rules/rulesEngine";
 import type {WorldAction} from "../state/worldReducer";
 
 interface HailControlsProps {
@@ -9,8 +9,10 @@ interface HailControlsProps {
 }
 
 /**
- * Hail controls (Rule 20): one "Hail for room to tack" button per boat, aimed at
- * the nearest boat on the same tack. A hail that breaks rule 20.1 can still be
+ * Hail controls (Rule 20). Hailing for room to tack only means something at an
+ * obstruction, so the row only shows while a boat is approaching one (or a hail
+ * is in play), with a button for each boat approaching an obstruction that has a
+ * boat on the same tack to hail (the nearest). A hail that breaks rule 20.1 can still be
  * made (the hailed boat must respond anyway, Rule 20.2(b)); a visible warning
  * chip next to the button says it breaks 20.1; the reason is in its tooltip and
  * in screen-reader text. A hailed boat can
@@ -18,21 +20,24 @@ interface HailControlsProps {
  */
 const HailControls = ({world, dispatch}: HailControlsProps) => {
 	const facts = React.useMemo(() => computeFacts(world), [world]);
+	const approaching = world.boats.filter((boat) => approachesObstruction(world, facts, boat.id));
+	if (approaching.length === 0 && world.hails.length === 0) return null;
 	return (
 		<div className="control-row hail-controls">
 			<span className="control-label">Hails</span>
-			{world.boats.map((boat) => {
+			{approaching.map((boat) => {
 				const target = hailTarget(world, facts, boat.id);
-				const problem = target === null ? null : hailProblem(world, facts, boat.id, target);
-				const alreadyHailed = target !== null && world.hails.some((h) => h.kind === "roomToTack" && h.from === boat.id && h.to === target);
+				if (target === null) return null;
+				const problem = hailProblem(world, facts, boat.id, target);
+				const alreadyHailed = world.hails.some((h) => h.kind === "roomToTack" && h.from === boat.id && h.to === target);
 				return (
 					<span className="hail-control" key={boat.id}>
 						<button
 							type="button"
 							className="reset-button"
-							disabled={target === null || alreadyHailed}
-							title={target === null ? "No boat on the same tack to hail" : alreadyHailed ? "Already hailed" : `${boat.id} hails ${target} for room to tack`}
-							onClick={() => target !== null && dispatch({type: "hail", from: boat.id, to: target, kind: "roomToTack", at: performance.now()})}>
+							disabled={alreadyHailed}
+							title={alreadyHailed ? "Already hailed" : `${boat.id} hails ${target} for room to tack`}
+							onClick={() => dispatch({type: "hail", from: boat.id, to: target, kind: "roomToTack", at: performance.now()})}>
 							{boat.id}: room to tack
 						</button>
 						{problem !== null && (
@@ -51,9 +56,11 @@ const HailControls = ({world, dispatch}: HailControlsProps) => {
 						{h.to}: reply &quot;You tack&quot;
 					</button>
 				))}
-			<button type="button" className="reset-button" disabled={world.hails.length === 0} onClick={() => dispatch({type: "clearHails"})}>
-				Clear hails
-			</button>
+			{world.hails.length > 0 && (
+				<button type="button" className="reset-button" onClick={() => dispatch({type: "clearHails"})}>
+					Clear hails
+				</button>
+			)}
 		</div>
 	);
 };

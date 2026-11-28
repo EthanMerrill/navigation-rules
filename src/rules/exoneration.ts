@@ -13,12 +13,13 @@
  */
 
 import type {Obligation, RuleId} from "./types";
+import {formatRuleId} from "./formatRuleId";
 
 /** The Section A, B rules a boat entitled to room is exonerated for breaking (Rule 43.1(b); rule 31 is not modelled). */
 const EXONERATED_RULES: ReadonlySet<RuleId> = new Set(["10", "11", "12", "13", "15", "16.1", "16.2"]);
 
 /** Rules whose giveRoom duty is "give room to keep clear", not room or mark-room as such; they never create an entitlement. */
-const NOT_ROOM_SOURCES: ReadonlySet<RuleId> = new Set(["15", "16.1", "19.2a"]);
+export const NOT_ROOM_SOURCES: ReadonlySet<RuleId> = new Set(["15", "16.1", "19.2a"]);
 
 /** An exoneration that was applied, for the Rule 43.1(b) card. */
 export interface ExonerationNote {
@@ -51,7 +52,7 @@ export function applyExoneration(fired: HasObligations[], pairKeys: string[]): E
 			if (!room) continue;
 			marked.set(duty, {...duty, exoneratedBy: "43.1b"});
 			const what = room.kind === "giveMarkRoom" ? "mark-room" : "room";
-			notes.push({pair: key, text: `Rule 43.1(b) — ${duty.boat} is exonerated if she breaks Rule ${duty.ruleId} in an incident with ${duty.towards}, because she is sailing within the ${what} ${duty.towards} owes her (Rule ${room.ruleId}).`});
+			notes.push({pair: key, text: `Rule 43.1(b) — ${duty.boat} is exonerated if she breaks Rule ${formatRuleId(duty.ruleId)} in an incident with ${duty.towards}, because she is sailing within the ${what} ${duty.towards} owes her (Rule ${formatRuleId(room.ruleId)}).`});
 		}
 		for (const f of inPair) f.obligations = f.obligations.map((o) => marked.get(o) ?? o);
 	}
