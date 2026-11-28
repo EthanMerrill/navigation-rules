@@ -38,16 +38,310 @@
 	z-index: 30;
 }
 
-/* Narrow screens: the water on top, the rules underneath. */
+/* Sidebar header: title with an info button, the Active / All toggle, and the settling indicator. */
+.rules-sidebar__header {
+	position: sticky;
+	top: -10px;
+	margin: -10px -14px 8px;
+	padding: 12px 14px 0;
+	background: #fefefe;
+	z-index: 5;
+}
+
+.rules-sidebar__title-row {
+	position: relative;
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.rules-sidebar__title-row h2 {
+	margin: 0;
+	font-size: 20px;
+	font-weight: 800;
+	color: #1d2433;
+}
+
+.rules-sidebar__toolbar {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	margin-top: 10px;
+	padding-bottom: 10px;
+}
+
+.rules-sidebar__status {
+	font-size: 12px;
+	font-weight: 600;
+	color: #6b6b85;
+	opacity: 0;
+	transition: opacity 0.15s ease;
+}
+
+.rules-sidebar__status--visible {
+	opacity: 1;
+}
+
+/* An indeterminate bar under the toolbar while the rules are recalculating. */
+.rules-sidebar__progress {
+	position: relative;
+	height: 2px;
+	margin: 0 -14px;
+	background: #ececf3;
+	overflow: hidden;
+}
+
+.rules-sidebar__progress::after {
+	content: "";
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	left: -40%;
+	width: 40%;
+	background: #9c7bff;
+	opacity: 0;
+	transition: opacity 0.15s ease;
+}
+
+.rules-sidebar__progress--visible::after {
+	opacity: 1;
+	animation: sidebar-progress 1s ease-in-out infinite;
+}
+
+@keyframes sidebar-progress {
+	from {
+		left: -40%;
+	}
+	to {
+		left: 100%;
+	}
+}
+
+.rules-sidebar__content--settling {
+	opacity: 0.45;
+	filter: grayscale(1);
+	pointer-events: none;
+}
+
+.rules-sidebar__content {
+	transition:
+		opacity 0.2s ease,
+		filter 0.2s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.rules-sidebar__progress--visible::after {
+		animation: none;
+		left: 0;
+		width: 100%;
+	}
+}
+
+.rules-sidebar__empty {
+	margin: 8px 2px;
+	font-size: 13px;
+	color: #6b6b85;
+}
+
+/* Active / All rules toggle. */
+.segmented {
+	display: inline-flex;
+	padding: 2px;
+	border-radius: 7px;
+	background: #efeff5;
+}
+
+.segmented__option {
+	display: inline-flex;
+	align-items: center;
+	gap: 5px;
+	padding: 4px 10px;
+	border: none;
+	border-radius: 5px;
+	background: transparent;
+	font-family: inter;
+	font-size: 12px;
+	font-weight: 600;
+	color: #555;
+	cursor: pointer;
+}
+
+.segmented__option[aria-pressed="true"] {
+	background: #fff;
+	color: #1d2433;
+	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+
+.segmented__count {
+	min-width: 16px;
+	padding: 0 5px;
+	border-radius: 8px;
+	background: #9c7bff;
+	color: #fff;
+	font-size: 11px;
+	text-align: center;
+}
+
+/* The ⓘ button and its popover (positioned against the title row, so it fits the sidebar). */
+.info {
+	display: inline-flex;
+}
+
+.info__button {
+	display: inline-flex;
+	padding: 3px;
+	border: none;
+	border-radius: 50%;
+	background: transparent;
+	color: #6b6b85;
+	cursor: pointer;
+}
+
+.info__button:hover,
+.info__button[aria-expanded="true"] {
+	color: #1565c0;
+	background: #e8f0fb;
+}
+
+.info__popover {
+	position: absolute;
+	top: calc(100% + 6px);
+	left: 0;
+	right: 0;
+	box-sizing: border-box;
+	padding: 12px 14px;
+	border: 1px solid #e0e0e8;
+	border-radius: 8px;
+	background: #fff;
+	box-shadow: 0 8px 24px rgba(20, 30, 60, 0.16);
+	font-size: 13px;
+	line-height: 1.45;
+	color: #333;
+	text-align: left;
+	z-index: 50;
+}
+
+.info__popover p {
+	margin: 0 0 8px;
+}
+
+.info__legend {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	font-size: 12px;
+}
+
+.info__swatch {
+	display: inline-block;
+	width: 10px;
+	height: 10px;
+	margin-right: 4px;
+	border-radius: 2px;
+	vertical-align: -1px;
+}
+
+.info__swatch--right-of-way {
+	background: #2e8b24;
+}
+.info__swatch--keep-clear {
+	background: #d32f2f;
+}
+.info__swatch--entitled {
+	background: #1565c0;
+}
+.info__swatch--duty {
+	background: #7b1fa2;
+}
+.info__swatch--limitation {
+	background: #6d6d6d;
+}
+
+/* Bottom-sheet controls: only shown on narrow screens. */
+.rules-sidebar__sheet-toggle,
+.rules-sidebar__sheet-count {
+	display: none;
+}
+
+/* Narrow screens: the water fills the screen and the rules are a bottom sheet. */
 @media (max-width: 760px) {
 	.App {
 		grid-template-columns: minmax(0, 1fr);
-		grid-template-rows: minmax(0, 1fr) minmax(0, 40vh);
+		grid-template-rows: minmax(0, 1fr) auto;
 		grid-template-areas: "main" "sidebar";
 	}
 	.rules-sidebar {
+		max-height: 54px;
 		border-right: none;
 		border-top: 1px solid #e6e4ea;
+		border-radius: 14px 14px 0 0;
+		box-shadow: 0 -4px 16px rgba(20, 30, 60, 0.12);
+		overflow: hidden;
+		transition: max-height 0.25s ease;
+	}
+	.rules-sidebar--sheet-open {
+		max-height: 65vh;
+		max-height: 65dvh;
+		overflow-y: auto;
+	}
+	.rules-sidebar__sheet-toggle {
+		display: flex;
+		justify-content: center;
+		position: absolute;
+		inset: 0 0 auto;
+		height: 48px;
+		padding: 6px 0 0;
+		border: none;
+		background: transparent;
+		cursor: grab;
+		/* The handle owns vertical drags; the page must not scroll or refresh instead. */
+		touch-action: none;
+	}
+	/* While dragging, the sheet follows the pointer (inline max-height) with no easing. */
+	.rules-sidebar--dragging {
+		transition: none;
+		overflow: hidden;
+	}
+	.rules-sidebar--dragging .rules-sidebar__sheet-toggle {
+		cursor: grabbing;
+	}
+	.rules-sidebar__sheet-grip {
+		width: 36px;
+		height: 4px;
+		border-radius: 2px;
+		background: #c9c9d6;
+	}
+	.rules-sidebar__header {
+		padding-top: 18px;
+	}
+	.rules-sidebar__title-row h2 {
+		font-size: 17px;
+	}
+	.rules-sidebar__sheet-count {
+		display: inline-block;
+		margin-left: auto;
+		padding: 2px 8px;
+		border-radius: 10px;
+		background: #9c7bff;
+		color: #fff;
+		font-size: 12px;
+		font-weight: 600;
+	}
+	/* Keep the info button above the full-width sheet toggle. */
+	.info {
+		position: relative;
+		z-index: 1;
+	}
+	.info__popover {
+		position: fixed;
+		top: auto;
+		bottom: 16px;
+		left: 12px;
+		right: 12px;
 	}
 }
 
@@ -82,67 +376,15 @@
 	white-space: nowrap;
 }
 
+/* Hull outlines: green for the right-of-way boat, red for a boat that must keep clear. */
 .standon-boat {
 	filter: drop-shadow(4px 0 0 #51b841) drop-shadow(-4px 0 0 #51b841) drop-shadow(0 4px 0 #51b841) drop-shadow(0 -4px 0 #51b841);
 	transition: filter 0.3s ease;
 }
 
-.starboard-tag {
-	background: #51b841;
-	border-radius: 2px;
-	margin: 2px;
-}
-
-.port-tag {
-	background: #f44336;
-	border-radius: 2px;
-	margin: 2px;
-}
-
-.windward-tag {
-	background: #c5c5c5;
-	border: 1px solid #8b8b8b;
-	border-radius: 2px;
-	margin: 2px;
-}
-
-.leeward-tag {
-	background: #c5c5c5;
-	border: 1px solid #8b8b8b;
-	border-radius: 2px;
-	margin: 2px;
-}
-
-.tacking-tag {
-	background: #ff9800;
-	border-radius: 2px;
-	margin: 2px;
-}
-
-.tacking-toggle {
-	cursor: pointer;
-	border: 1px solid #ccc;
-	border-radius: 4px;
-	background: #fff;
-	padding: 4px 10px;
-	font-family: inter;
-	font-weight: 600;
-	font-size: 12px;
-	white-space: nowrap;
-}
-
-.tacking-toggle--active {
-	background: #ff9800;
-	border-color: #e07b00;
-	color: #fff;
-}
-
-.text-tag {
-	padding: 2px;
-	margin: 0px;
-	font-size: 12px;
-	color: #ffffff;
-	font-weight: 600;
+.giveway-boat {
+	filter: drop-shadow(3px 0 0 #e0524f) drop-shadow(-3px 0 0 #e0524f) drop-shadow(0 3px 0 #e0524f) drop-shadow(0 -3px 0 #e0524f);
+	transition: filter 0.3s ease;
 }
 
 .rules-sidebar > * {
@@ -399,57 +641,97 @@
 	color: #333;
 }
 
-.wind-arrow {
-	font-size: 18px;
-	line-height: 1;
-	color: #333;
-	width: 18px;
-	text-align: center;
-	transition: transform 0.15s ease;
-	transform-origin: center;
+/* Wind control: an arrow riding a circle inside the water (screen space, above the stage). */
+.wind-circle {
+	position: absolute;
+	top: 0;
+	left: 0;
+	box-sizing: border-box;
+	border: 2px dashed rgba(21, 101, 192, 0.35);
+	border-radius: 50%;
+	pointer-events: none;
+	opacity: 0;
+	transition: opacity 0.2s ease;
+	z-index: 24;
 }
 
-.wind-slider {
-	flex: 1;
-	min-width: 120px;
-	margin: 0;
-	accent-color: #51b841;
+.wind-circle--visible,
+.play-area:has(.wind-arrow:hover) .wind-circle,
+.play-area:has(.wind-arrow:focus-visible) .wind-circle {
+	opacity: 1;
+}
+
+.wind-arrow {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 40px;
+	height: 72px;
+	margin: -36px 0 0 -20px;
+	border-radius: 20px;
+	cursor: grab;
+	touch-action: none;
+	outline: none;
+	z-index: 26;
+}
+
+.wind-arrow svg {
+	display: block;
+	overflow: visible;
+	filter: drop-shadow(0 1px 2px rgba(20, 30, 60, 0.35));
+	transition: transform 0.15s ease;
+}
+
+.wind-arrow:hover svg,
+.wind-arrow--dragging svg {
+	transform: scale(1.12);
+}
+
+.wind-arrow--dragging {
+	cursor: grabbing;
+}
+
+.wind-arrow:focus-visible {
+	box-shadow: 0 0 0 3px rgba(21, 101, 192, 0.45);
+}
+
+.wind-arrow__body {
+	fill: #1565c0;
+	stroke: #fff;
+	stroke-width: 2;
+	stroke-linejoin: round;
 }
 
 .wind-readout {
-	font-size: 13px;
-	font-weight: 600;
-	color: #333;
-	white-space: nowrap;
-	min-width: 56px;
-	text-align: center;
-}
-
-.wind-presets {
-	display: flex;
-	gap: 4px;
-}
-
-.wind-preset {
-	cursor: pointer;
-	border: 1px solid #ccc;
-	border-radius: 4px;
-	background: #fff;
+	position: absolute;
+	top: 0;
+	left: 0;
 	padding: 3px 8px;
+	border-radius: 6px;
+	background: rgba(255, 255, 255, 0.9);
+	box-shadow: 0 1px 3px rgba(20, 30, 60, 0.2);
 	font-family: inter;
-	font-weight: 600;
 	font-size: 12px;
+	font-weight: 700;
+	font-variant-numeric: tabular-nums;
+	color: #1d2433;
+	white-space: nowrap;
+	pointer-events: none;
+	z-index: 26;
 }
 
-.wind-preset:hover {
-	background: #f0f0f0;
+.wind-readout__label {
+	font-weight: 600;
+	color: #1565c0;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	font-size: 10px;
 }
 
-.wind-preset--active {
-	background: #51b841;
-	border-color: #51b841;
-	color: #fff;
+.wind-readout--dragging {
+	font-size: 15px;
 }
+
 /* Hide moveable's bounding-box lines; the rotation line stays (see the play area section). */
 .moveable-line {
 	position: absolute;
@@ -461,9 +743,8 @@
 }
 
 .sail-path {
-	/* Position the sail out of normal flow so the dynamic tags (windward/leeward
-	   etc.) can never shift it fore-aft. The mast pivot (left/top) is set inline
-	   per-tack so it sits on the hull centreline. */
+	/* Position the sail out of normal flow so it never shifts fore-aft. The mast
+	   pivot (left/top) is set inline per-tack so it sits on the hull centreline. */
 	position: absolute;
 	/* Allow the rotated sail (up to ~85° trim) to draw outside its 11x79 viewBox
 	   instead of being clipped at the SVG viewport. */
@@ -486,12 +767,6 @@
 	50% {
 		transform: rotate(12deg);
 	}
-}
-
-.point-of-sail-tag {
-	background: #2196f3;
-	border-radius: 2px;
-	margin: 2px;
 }
 
 .rules-sidebar > * {
@@ -525,31 +800,6 @@
 
 .transom-line--visible {
 	opacity: 1;
-}
-
-/* Boat obligation tags */
-.obligation-tag {
-	background: #7b1fa2;
-	border-radius: 2px;
-	margin: 2px;
-}
-
-.obligation-tag--exonerated {
-	background: #b9a3c4;
-	opacity: 0.75;
-}
-
-.head-to-wind-tag {
-	background: #c5c5c5;
-	border: 1px solid #8b8b8b;
-	border-radius: 2px;
-	margin: 2px;
-}
-
-.text-tag--secondary {
-	font-size: 10px;
-	font-weight: 500;
-	color: #333;
 }
 
 /* Rule groups in the sidebar */
@@ -748,7 +998,7 @@
 	position: absolute;
 	left: 12px;
 	bottom: 10px;
-	max-width: calc(100% - 150px);
+	max-width: min(260px, calc(100% - 150px));
 	margin: 0;
 	padding: 4px 10px;
 	border-radius: 6px;
@@ -841,4 +1091,75 @@
 	font-size: 11px;
 	font-weight: 500;
 	opacity: 0.85;
+}
+
+/* Boat badge: the rules that take precedence for a boat, upright off her stern. */
+.boat-badge {
+	position: absolute;
+	top: 0;
+	left: 0;
+	transform-origin: 0 0;
+	display: flex;
+	flex-direction: column;
+	gap: 3px;
+	font-family: inter;
+	white-space: nowrap;
+	pointer-events: none;
+	z-index: 30;
+}
+
+.boat-badge__line {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 3px 4px 3px 8px;
+	border-radius: 6px;
+	background: #fff;
+	border-left: 4px solid var(--tone);
+	box-shadow: 0 1px 4px rgba(20, 30, 60, 0.18);
+	font-size: 12px;
+	font-weight: 600;
+}
+
+.boat-badge__text {
+	color: #1d2433;
+}
+
+.boat-badge__rule {
+	padding: 1px 6px;
+	border-radius: 4px;
+	background: var(--tone);
+	color: #fff;
+	font-size: 11px;
+	font-weight: 700;
+	font-variant-numeric: tabular-nums;
+}
+
+.boat-badge__line--right-of-way {
+	--tone: #2e8b24;
+}
+
+.boat-badge__line--keep-clear {
+	--tone: #d32f2f;
+}
+
+.boat-badge__line--entitled {
+	--tone: #1565c0;
+}
+
+.boat-badge__line--duty {
+	--tone: #7b1fa2;
+}
+
+.boat-badge__line--limitation {
+	--tone: #6d6d6d;
+}
+
+.boat-badge__more {
+	padding: 1px 6px;
+	border-radius: 4px;
+	background: rgba(255, 255, 255, 0.85);
+	color: #555;
+	font-size: 10px;
+	font-weight: 500;
 }

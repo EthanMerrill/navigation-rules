@@ -2,17 +2,19 @@ import React from "react";
 import MoveableComponent from "./MoveableComponent";
 import PrototypeBoat from "../assets/PrototypeBoat.svg";
 import type {BoatState} from "../model/world";
-import {BoatView, PointOfSail} from "../rules/rulesEngine";
+import {BoatView, PointOfSail, formatRuleId} from "../rules/rulesEngine";
 import type {WorldAction} from "../state/worldReducer";
 import {centerFromWrapperOrigin, toPx, wrapperOrigin} from "../view/scale";
 import {ViewContext} from "../view/ViewContext";
-import {obligationTags} from "../ui/obligationLabels";
+import type {BoatBadge} from "../ui/boatBadge";
 
 export interface ImoveableBoatProps {
 	boatState: BoatState;
 	dispatch: React.Dispatch<WorldAction>;
 	text: string;
 	boatView: BoatView;
+	/** The rules that take precedence for her (drawn by `BoatBadgeLayer`; read out in her label here). */
+	badge: BoatBadge;
 }
 
 const STARBOARD_SAIL_PATH = "M10 1C-0.5 14.5 -0.5 61.5 3.5 78.5";
@@ -46,7 +48,7 @@ const POINT_OF_SAIL_LABELS: Record<PointOfSail, string> = {
 };
 
 const MoveableBoat = (props: ImoveableBoatProps) => {
-	const {boatState, dispatch, text, boatView} = props;
+	const {boatState, dispatch, text, boatView, badge} = props;
 	const moveRef = React.useRef<HTMLDivElement>(null);
 	const viewScale = React.useContext(ViewContext).scale;
 	// The heading readout shows while she is being turned with the handle or has keyboard focus.
@@ -69,6 +71,11 @@ const MoveableBoat = (props: ImoveableBoatProps) => {
 	// its top-left corner; `wrapperOrigin` converts world units to that pixel offset.
 	const origin = wrapperOrigin(boatState);
 	const transform = `translate(${origin.x}px, ${origin.y}px) rotate(${boatState.heading}deg)`;
+
+	// Green outline: right of way. Red: she must keep clear (unless that duty is
+	// exonerated by room she is owed, which the badge shows instead).
+	const mustKeepClear = boatView.obligations.some((o) => o.kind === "keepClear" && o.exoneratedBy === undefined);
+	const hullClass = boatView.standOn ? "standon-boat" : mustKeepClear ? "giveway-boat" : undefined;
 
 	const sailPath = boatView.tack === "PORT" ? PORT_SAIL_PATH : STARBOARD_SAIL_PATH;
 
@@ -122,54 +129,14 @@ const MoveableBoat = (props: ImoveableBoatProps) => {
 				tabIndex={0}
 				role="group"
 				aria-roledescription="boat"
-				aria-label={`${text}, heading ${heading} degrees, ${tackLabel.toLowerCase()}. Left and right arrow keys turn her.`}
+				aria-label={`${text}, heading ${heading} degrees, ${tackLabel.toLowerCase()}. ${badge.lines.map((line) => `${line.text} (Rule ${line.rules.map(formatRuleId).join(", ")}). `).join("")}Left and right arrow keys turn her.`}
 				onKeyDown={onKeyDown}
 				onFocus={() => setFocused(true)}
 				onBlur={() => setFocused(false)}
 				style={{
 					transform,
 				}}>
-				<img alt={text} src={PrototypeBoat} className={boatView.standOn ? "standon-boat" : undefined} />
-				{boatView.tack === "STARBOARD" && (
-					<div className="starboard-tag">
-						<p className="text-tag">Starboard</p>
-					</div>
-				)}
-				{boatView.tack === "PORT" && (
-					<div className="port-tag">
-						<p className="text-tag">Port</p>
-					</div>
-				)}
-				{boatView.tack === null && (
-					<div className="head-to-wind-tag">
-						<p className="text-tag">Head to wind</p>
-					</div>
-				)}
-				{boatView.tacking && (
-					<div className="tacking-tag">
-						<p className="text-tag">Tacking</p>
-					</div>
-				)}
-				<div className="point-of-sail-tag">
-					<p className="text-tag">{POINT_OF_SAIL_LABELS[boatView.pointOfSail]}</p>
-				</div>
-				{obligationTags(boatView.obligations).map(({label, exonerated}) => (
-					<div className={exonerated ? "obligation-tag obligation-tag--exonerated" : "obligation-tag"} key={label} title={exonerated ? "Exonerated (Rule 43.1(b))" : undefined}>
-						<p className="text-tag">{exonerated ? `${label} (exonerated)` : label}</p>
-					</div>
-				))}
-				{boatView.windwardOf.length > 0 && (
-					<div className="windward-tag">
-						<p className="text-tag text-tag--secondary">Windward</p>
-					</div>
-				)}
-				{boatView.leewardOf.length > 0 && (
-					<div className="leeward-tag">
-						<p className="text-tag text-tag--secondary">
-							<u>Leeward</u>
-						</p>
-					</div>
-				)}
+				<img alt={text} src={PrototypeBoat} className={hullClass} />
 				<svg
 					className={isFlapping ? "sail-path sail-path--flapping" : "sail-path"}
 					width="11"

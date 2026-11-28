@@ -13,6 +13,7 @@ import type {WorldFacts} from "./factsEngine";
 import {RULE_CONTENT, contentOf} from "./content/rrs-2025";
 import {RULE_REGISTRY} from "./definitions";
 import {applyExoneration} from "./exoneration";
+import {formatRuleId} from "./formatRuleId";
 import type {BoatView, EngineHistory, EvalContext, Obligation, PairContext, PairView, RuleDefinition, RuleEvaluation, RuleId, RuleState} from "./types";
 
 /** A rule that fired (produced obligations) for one pair, one boat, or the whole world. */
@@ -179,7 +180,7 @@ export function evaluate(world: WorldState, facts: WorldFacts, history: EngineHi
 			noteShort,
 			applicable: mine.length > 0 || exoneration !== undefined,
 			deciding: inFocus.some((f) => f.obligations.some((o) => o.kind === "keepClear")),
-			detail: exoneration?.text ?? (first ? first.detail + (first.exoneratedBy ? ` (exonerated, Rule ${first.exoneratedBy})` : "") : ""),
+			detail: exoneration?.text ?? (first ? first.detail + (first.exoneratedBy ? ` (exonerated, Rule ${formatRuleId(first.exoneratedBy)})` : "") : ""),
 		};
 	};
 	const states = registry.filter((r) => r.scope !== "reference").map(toState);

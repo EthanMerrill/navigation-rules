@@ -1,5 +1,6 @@
 import React from "react";
 import type {WorldState} from "../model/world";
+import WindArrow from "./WindArrow";
 import {IDENTITY_VIEW, ViewTransform, fitView, worldBoundsPx} from "../view/fitView";
 import {ViewContext} from "../view/ViewContext";
 
@@ -7,6 +8,9 @@ interface PlayAreaProps {
 	world: WorldState;
 	/** Changes whenever a scenario is (re)loaded; the view refits then. */
 	fitKey: number;
+	onWindChange: (direction: number) => void;
+	/** Called with true when the pointer goes down anywhere on the water and false when it is released. */
+	onPointerHeldChange?: (held: boolean) => void;
 	children: React.ReactNode;
 }
 
@@ -17,7 +21,7 @@ interface PlayAreaProps {
  * resizes, or on request, but not while boats are being dragged, so the water
  * never moves under the pointer.
  */
-const PlayArea = ({world, fitKey, children}: PlayAreaProps) => {
+const PlayArea = ({world, fitKey, onWindChange, onPointerHeldChange, children}: PlayAreaProps) => {
 	const areaRef = React.useRef<HTMLDivElement>(null);
 	const [size, setSize] = React.useState({width: 0, height: 0});
 	const [view, setView] = React.useState<ViewTransform>(IDENTITY_VIEW);
@@ -36,20 +40,36 @@ const PlayArea = ({world, fitKey, children}: PlayAreaProps) => {
 		return () => observer.disconnect();
 	}, []);
 
+	const viewState = React.useMemo(() => ({...view, viewportWidth: size.width, viewportHeight: size.height}), [view, size]);
+
 	const refit = React.useCallback(() => setView(fitView(worldBoundsPx(worldRef.current), size)), [size]);
 
 	React.useLayoutEffect(refit, [refit, fitKey]);
 
+	// The pointer counts as held from a press on the water until it is released anywhere.
+	const onPointerDownCapture = () => {
+		if (!onPointerHeldChange) return;
+		onPointerHeldChange(true);
+		const release = () => {
+			onPointerHeldChange(false);
+			window.removeEventListener("pointerup", release);
+			window.removeEventListener("pointercancel", release);
+		};
+		window.addEventListener("pointerup", release);
+		window.addEventListener("pointercancel", release);
+	};
+
 	return (
-		<main className="play-area" ref={areaRef} aria-label="Race area">
+		<main className="play-area" ref={areaRef} aria-label="Race area" onPointerDownCapture={onPointerDownCapture}>
 			<div className="patterns pt1" aria-hidden="true" />
-			<ViewContext.Provider value={view}>
+			<ViewContext.Provider value={viewState}>
 				<div className="play-area__stage" style={{transform: `translate(${view.x}px, ${view.y}px) scale(${view.scale})`}}>
 					{children}
 				</div>
 			</ViewContext.Provider>
+			<WindArrow direction={world.wind.direction} onChange={onWindChange} width={size.width} height={size.height} />
 			<p className="play-area__hint">
-				Drag a boat to move it. Drag the <span aria-hidden="true">↻</span> handle at her bow to turn her, or select her and use the arrow keys.
+				Drag a boat to move her; turn her with the <span aria-hidden="true">↻</span> handle or the arrow keys. Drag the wind arrow round the circle.
 			</p>
 			<button type="button" className="reset-button play-area__fit" onClick={refit} title="Zoom to fit every boat, mark and obstruction">
 				Fit to view

@@ -27,7 +27,7 @@ describe("Rule 43.1(b) — exoneration", () => {
 		const rule43 = e.rules.find((r) => r.id === "43.1b");
 		expect(rule43?.applicable).toBe(true);
 		expect(rule43?.detail).toContain("boat1 is exonerated");
-		expect(e.rules.find((r) => r.id === "11")?.detail).toContain("(exonerated, Rule 43.1b)");
+		expect(e.rules.find((r) => r.id === "11")?.detail).toContain("(exonerated, Rule 43.1(b))");
 	});
 
 	it("flags exonerated obligations on the boat tags", () => {
